@@ -74,18 +74,25 @@ function sign(x) {
   if (x < 0) { return -1; } else {return 1}
 }
 
+function dist(now, old) {
+  return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
+}
+
 function curveTo(old, now) {
-  var mx = (now.x + old.x)/2;
-  var my = (now.y + old.x)/2;
-  var d = Math.sqrt(Math.pow((now.x - old.x),2)+Math.pow((now.y - old.y),2));
-  var D = Math.sqrt(Math.pow((mx - center.x),2)+Math.pow((my - center.y),2));
-  var rx_ub = Math.abs(center.x - Math.abs(mx-center.x));
-  var ry_ub = Math.abs(center.y - Math.abs(my-center.y));
-  var rx = uniform(-10,rx_ub);
-  var ry = uniform(-10,ry_ub);
-  var qx = mx + (rx*(mx - center.x)/D);
-  var qy = my + (ry*(my - center.y)/D);
-  return " Q " + qx + "," + qy + " " + now.x + "," + now.y;
+  var d = dist(now, old);
+  if (d < 10) { return " L " + now.x + "," + now.y; } else {
+    var mx = (now.x + old.x)/2;
+    var my = (now.y + old.y)/2;
+    var median = {x: mx, y: my};
+    var D = dist(center, median);
+    var rx_ub = center.x - Math.abs(median.x - center.x);
+    var ry_ub = center.y - Math.abs(median.y - center.y);
+    var rx = uniform(0,rx_ub);
+    var ry = uniform(0,ry_ub);
+    var qx = mx + (rx*(mx - center.x)/D);
+    var qy = my + (ry*(my - center.y)/D);
+    return " Q " + qx + "," + qy + " " + now.x + "," + now.y;
+  }
 }
 
 var size = {x: 300, y: 300};
@@ -164,7 +171,7 @@ function polygon(n) {
 }
 
 var paper = Raphael("polygon", size.x, size.y);
-var n = 4; //number of vertices for the shapes
+var n = 6; //number of vertices for the shapes
 var color = colorScheme.get()
 var poly1 = paper.path(polygon(n));
 var poly2 = paper.path(polygon(n));
@@ -172,6 +179,8 @@ poly2.hide();
 poly1.attr({"stroke-width":4, "fill":color});
 poly2.attr({"stroke-width":4, "fill":color});
 poly1.animate(attrify(poly2), 1000);
+var origin = paper.circle(center.x, center.y, 3);
+origin.attr({fill:"black"});
 </script>
 
 </body>
