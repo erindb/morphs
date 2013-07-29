@@ -1,27 +1,139 @@
-var arrow = {
-    "vstart": 15,
-//    "scale": .8,
-    "l12": {
-	"horizontal": 25,
-	"vertical": -15
-    },
-    "l23": {
-	"horizontal": -10,
-	"vertical": 0
-    },
-    "l34": {
-	"horizontal": 0,
-	"vertical": -25
-    },
-    "l45": {
-	"horizontal": -10,
-	"vertical": -10
-    },
-    "l56": {
-	"horizontal": -15,
-	"vertical": -20
+function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i; j = parseInt(Math.random() * i), x = newarray[--i], newarray[i] = newarray[j], newarray[j] = x);return newarray;} // non-destructive.
+
+function uniformAroundMean(mean, radius) {
+  var radius = radius || 0.2;
+  if (mean + radius < 1) {
+    var upper = mean + radius;
+  } else {
+    var upper = 1;
+  }
+  if (mean - radius > .1) {
+    var lower = mean - radius;
+  } else {
+    var lower = .1;
+  }
+  var interval = upper - lower;
+  return Math.random() * interval + lower;
+}
+
+function ColorRandomizer(nSteps) {
+  var nSteps = nSteps || 10;
+  function hues(n) {
+    var h = [];
+    var offset = Math.random() * .99 / n;
+    for (var i=0;i<n-1;i++) {
+      h.push((i/n)+offset);
     }
-};
+    return shuffle(h);
+  }
+  var myHues = hues(nSteps);
+  this.get = get;
+  function get(something, saturation, value) {
+    if (myHues.length < 1) {
+      myHues = hues(nSteps);
+    }
+    var h = myHues.shift();
+    var s = uniformAroundMean(.99, .1);
+    var v = uniformAroundMean(.99, .1);
+    return Raphael.hsb2rgb(h, s, v).hex;
+  }
+}
+
+var colorScheme = new ColorRandomizer;
+  
+function uniform(a, b) {
+  return ( (Math.random()*(b-a))+a );
+}
+
+function bernoulli() {
+  if (Math.random() > 0.5) {return true;} else {return false;}
+}
+
+function attrify(p) {
+  return {path: p.attr().path.toString(),
+          fill:p.attr().fill,
+          "stroke-width":p.attr()["stroke-width"]}
+}
+
+function sign(x) {
+  if (x < 0) { return -1; } else {return 1}
+}
+
+function dist(now, old) {
+  return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
+}
+
+function curveTo(polar_old, polar_now) {
+  //takes in polar coordinates!!!!
+  var now = rect(polar_now);
+  var old = rect(polar_old);
+  var d = dist(now, old);
+  if (d < 10) { return " L " + polar_now.x + "," + polar_now.y; } else {
+    var q = { theta: (polar_now.theta + polar_old.theta)/2,
+              r: uniform(Math.min(polar_now.r, polar_old.r), max_radius*2) };
+    return " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
+  }
+}
+
+var size = {x: 300, y: 300};
+var center = {x: size.x/2, y: size.y/2};
+var max_radius = Math.min(center.x, center.y);
+
+function rect(p) {
+  //convert to rectangular coordinates
+  var x = center.x + p.r*Math.cos(p.theta);
+  var y = center.y + p.r*Math.sin(p.theta);
+  return {x: x, y: y};
+}
+
+/*\
+polygon
+[ method ]
+- n (integer) number of vertices for the polygon
+\*/
+function polygon(n) {
+  var vertices = [];
+  for (var i=0; i<n; i++) {
+    //polar coordinates of vertices such that if you divide a circle into n
+    //evenly spaced sectors, each sector will have exactly one vertex whose
+    //angle from the origin falls in that sector, and the radius is a positive
+    //number between 50 and 300.
+    var theta_lb = i*2*Math.PI/n; //lower bound
+    var theta_ub = (i+1)*2*Math.PI/n; //upper bound
+    var theta = uniform( theta_lb, theta_ub ); //in radians
+    var radius = uniform( max_radius*0.1, max_radius*0.5 );
+    /*
+    */
+    vertices.push({theta:theta, r:radius})
+  }
+  var first = rect(vertices[0]);
+  var path = "M " + first.x + "," + first.y;
+  for (var i=1; i<n; i++) {
+    var curve = bernoulli();
+    var now = rect(vertices[i]);
+    if (curve) {
+      path += curveTo(vertices[i-1], vertices[i]); //takes polar coords!!!
+    } else {
+      path += " L " + now.x + "," + now.y;
+    }
+  }
+  var curve = bernoulli();
+  if (curve) {
+    var now = {x: vertices[0].x, y: vertices[0].y};
+    var old = {x: vertices[n-1].x, y: vertices[n-1].y};
+    path += curveTo(old, now);
+  } else {
+    path += " L " + now.x + "," + now.y;
+  }
+  path += " Z";
+  console.log(path);
+  return path;
+}
+
+
+//*****************************************************************************
+
+
 
 var spool = {
     "vstart": 0,
@@ -36,75 +148,6 @@ var spool = {
     "l34": {
 	"horizontal": -25,
 	"vertical": -25
-    }
-};
-
-var rectangle = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 40,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal": 0,
-	"vertical": 20
-    },
-    "l34": {
-	"horizontal": -40,
-	"vertical": 0
-    }
-};
-
-var steps = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 25,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal": 0,
-	"vertical": 25
-    },
-    "l34": {
-	"horizontal": 25,
-	"vertical": 0
-    },
-    "l45": {
-	"horizontal": 0,
-	"vertical": 10
-    },
-    "l56": {
-	"horizontal": -25,
-	"vertical": 0
-    },
-    "l67": {
-	"horizontal": -15,
-	"vertical": -10
-    }
-};
-
-var l_shape = {
-    "vstart": 0,
-//    "scale": .8,
-    "l12": {
-	"horizontal": 0,
-	"vertical": 25
-    },
-    "l23": {
-	"horizontal": -25,
-	"vertical": 0
-    },
-    "l34": {
-	"horizontal": 50,
-	"vertical": 0
-    },
-    "l45": {
-	"horizontal": 0,
-	"vertical": -25
-    },
-    "l56": {
-	"horizontal": -50,
-	"vertical": 0
     }
 };
 
@@ -140,205 +183,45 @@ var z_tetronimo = {
     }
 };
 
-var almostparallelogram = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 30,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal": -10,
-	"vertical": 20
-    },
-    "l34": {
-	"horizontal": -25,
-	"vertical": 0
+function posify(pathString, xpos, ypos) {
+  var segments = pathString.split(" ");
+  var ret_string = segments[0]; //M
+  for (var i=1; i<(segments.length-1); i++) {
+    var seg = segments[i];
+    if (seg == "Q" || seg == "L") {
+      ret_string += (" " + seg)
+    } else {
+      var point = seg.split(',');
+      var x = (((parseFloat(point[0])-150)*0.2)+xpos).toString();
+      var y = (((parseFloat(point[1])-150)*0.2)+ypos).toString();
+      ret_string += (" " + x + "," + y);
     }
-};
-
-var triangle = {
-    "vstart": 15,
-//    "scale": .8,
-    "l12": {
-	"horizontal": 20,
-	"vertical": -30
-    },
-    "l23": {
-	"horizontal": -15,
-	"vertical": -25
-    }
-};
-
-var wonkystar = {
-    "vstart": 0,
-     "l12": {
-	"horizontal": 25,
-	"vertical": 25
-    },
-    "l23": {
-	"horizontal": -15,
-	"vertical": 30
-    },
-    "l34": {
-	"horizontal": -20,
-	"vertical": -15
-    }
+  }
+  ret_string += (" " + segments[segments.length]); //z
+  return ret_string;
 }
 
-var chair = {
-    "vstart": 0,
-     "l12": {
-	"horizontal": 20,
-	"vertical": 20
-    },
-    "l23": {
-	"horizontal": 10,
-	"vertical": 10
-    },
-    "l34": {
-	"horizontal": -20,
-	"vertical": -20
-    },
-    "l45": {
-	"horizontal": 10,
-	"vertical": 10
-    },
-    "l56": {
-	"horizontal": 10,
-	"vertical": 10
-    },
-    "l67": {
-	"horizontal": -30,
-	"vertical": 0
+function translate(pathString, xpos, ypos) {
+  var segments = pathString.split(" ");
+  var ret_string = segments[0]; //M
+  var first_seg = segments[1].split(',');
+  var old_xpos = first_seg[0];
+  var old_ypos = first_seg[1];
+  var xdiff = xpos - old_xpos;
+  var ydiff = ypos - old_ypos;
+  for (var i=1; i<(segments.length-1); i++) {
+    var seg = segments[i];
+    if (seg == "Q" || seg == "L") {
+      ret_string += (" " + seg)
+    } else {
+      var point = seg.split(',');
+      var x = (parseFloat(point[0])+xdiff).toString();
+      var y = (parseFloat(point[1])+ydiff).toString();
+      ret_string += (" " + x + "," + y);
     }
-}
-
-var shaker =  {
-    "vstart": 0,
-     "l12": {
-	"horizontal": 5,
-	"vertical": 5
-    },
-    "l23": {
-	"horizontal": -5,
-	"vertical": 5
-    },
-    "l34": {
-	"horizontal": 5,
-	"vertical": 10
-    },
-    "l45": {
-	"horizontal": 10,
-	"vertical": 10
-    },
-    "l56": {
-	"horizontal": -10,
-	"vertical": 10
-    },
-    "l67": {
-	"horizontal": -5,
-	"vertical": 10
-    },
- "l78": {
-	"horizontal": -5,
-	"vertical": -10
-    },
- "l89": {
-	"horizontal": 10,
-	"vertical": -10
-    }
-}
-
-var cushion = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 20,
-	"vertical": 20
-    },
-    "l23": {
-	"horizontal": 10,
-	"vertical": 10
-    },
-    "l34": {
-	"horizontal": 0,
-	"vertical": 10
-    },
-    "l45": {
-	"horizontal": -30,
-	"vertical": 0
-    },
-    "l56": {
-	"horizontal": 0,
-	"vertical": -10
-    }
-}
-
-var sidewayshouse =  {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 20,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal": 0,
-	"vertical": -20
-    },
-    "l34": {
-	"horizontal": -20,
-	"vertical": 0
-    },
-    "l45": {
-	"horizontal": -15,
-	"vertical": -10
-    }
-}
-
-var fakerectangle =  {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 0,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal":20,
-	"vertical": 0
-    },
-    "l34": {
-	"horizontal": 0,
-	"vertical": 20
-    },
-    "l45": {
-	"horizontal": 0,
-	"vertical": 0
-    },
- "l56": {
-	"horizontal": -20,
-	"vertical": 0
-    }
-}
-
-var bowl =  {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 30,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal":-10,
-	"vertical": 15
-    },
-    "l34": {
-	"horizontal": 5,
-	"vertical": 5
-    },
-    "l45": {
-	"horizontal": -20,
-	"vertical": 0
-    },
- "l56": {
-	"horizontal": 5,
-	"vertical": -5
-    }
+  }
+  ret_string += (" " + segments[segments.length]); //z
+  return ret_string;
 }
 
 var flat = [0.05000000, 0.08461538, 0.11923077, 0.15384615, 0.18846154, 0.22307692, 0.25769231, 0.29230769, 0.32692308, 0.36153846, 0.39615385, 0.43076923, 0.46538462, 0.50000000, 0.53461538, 0.56923077, 0.60384615, 0.63846154, 0.67307692, 0.70769231, 0.74230769, 0.77692308, 0.81153846, 0.84615385, 0.88076923, 0.91538462, 0.95000000];
@@ -359,12 +242,12 @@ var topMargin = 75;
 var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
-var numberOfQuestionsPerTrial = 6;
-var shapes = [[spool, z_tetronimo], [fakerectangle, cushion], [bowl, wonkystar], [arrow, triangle], [sidewayshouse, l_shape], [shaker, chair], [steps, almostparallelogram]];
-var adjectives = ["furby", "dibty", "halmy", "wiggy", "grondy", "alby", "hartny"];
-var nouns = ["wug", "sarma", "bejeeba", "twan", "pimwit", "barnda", "slubja"];
-var colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF","#FFCC99"];
-var distributions = [[gauss,"left"], [gauss,"right"], [peakedup,"left"], [peakedup,"right"],  [peakeddown,"left"], [peakeddown,"right"],  [flat,"left"], [flat,"right"]];
+var numberOfQuestionsPerTrial = 2;
+var shapes = [[polygon(7), polygon(7)]];
+var adjectives = ["furby"];
+var nouns = ["wug"];
+var colors = ["#FF0000"];
+var distributions = [[gauss,"left"]];
 var myTrialAdjectives = shuffle(adjectives);
 var myTrialNouns = shuffle(nouns);
 var myTrialShapes = shuffle(shapes);
@@ -489,7 +372,7 @@ experiment = {
 		    if (idx == q1ex1idx) {
 			q1ex1posInOSS = posInOSS;
 		    }
-		    var tmpPath = toPathString(morphBetween(trialparameters.leftShape, trialparameters.rightShape, morphProp), xpos, ypos);
+		    var tmpPath = posify("M 169.52168037144816,162.51411455385818 L 167.2817274409099,168.09851007232768 L 143.8025165078412,218.54147553113944 Q 78.72604949204089,322.8111333655915 124.11004426842815,181.22931455192736 Q -57.2023423802689,302.69368358641407 103.55909190039498,169.17467576822642 L 82.60588882788927,130.81720888580756 Q 92.99468919608893,106.66129595105541 113.49438635472598,90.19398437695303 L 131.6901865838503,92.81267431774906 Q 181.55270069655708,-65.83880238261446 185.13925805271964,98.65647119960451 Q 232.3836707970368,80.89213582688545 197.81165196114495,128.34082476468785 L 169.52168037144816,162.51411455385818 Z", xpos, ypos); //toPathString(morphBetween(trialparameters.leftShape, trialparameters.rightShape, morphProp), xpos, ypos);
 		    var tmpObj = paper.path(tmpPath);
 		    onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
 		    posInOSS++;
@@ -511,8 +394,8 @@ experiment = {
 		    var match1 = example1Path.split(' ');
 		    var more, less, mtpos, ltpos;
 //		    if (parseFloat(match0[1]) < parseFloat(match1[1])) {
-			newPath0 = match0[0] + " " + (canvasWidth/2 - 100) + " " + canvasHeight*4/5;
-			newPath1 = match1[0] + " " + (canvasWidth/2 + 100) + " " + canvasHeight*4/5;
+			newPath0 = translate(example0Path, (canvasWidth/2 - 100), canvasHeight*4/5);
+			newPath1 = translate(example1Path, (canvasWidth/2 + 100), canvasHeight*4/5);
 			if (examples[0][2] > examples[1][2]) { 
 			    more = "left";
 			    less = "right";
@@ -541,12 +424,6 @@ experiment = {
 			}
 		    }
 */
-		    for (z=3; z < match0.length; z++) {
-			newPath0 += " " + match0[z];
-		    }
-		    for (z=3; z < match1.length; z++) {
-			newPath1 += " " + match1[z];
-		    }
 
 // mtpos[0], mtpos[1]
 
@@ -589,8 +466,8 @@ experiment = {
 			var q1Path1 = q1examples[1][1];
 			var q1match1 = q1Path1.split(' ');
 			if (parseFloat(q1match0[1]) < parseFloat(q1match1[1])) {
-			    var q1newPath0 = "M " + (canvasWidth/2 - 100) + " " + canvasHeight*4/5;
-			    var q1newPath1 =  "M " + (canvasWidth/2 + 100) + " " + canvasHeight*4/5;
+			    var q1newPath0 = translate(q1Path0, (canvasWidth/2 - 100), canvasHeight*4/5);
+			    var q1newPath1 = translate(q1Path1, (canvasWidth/2 + 100), canvasHeight*4/5);
 			    if (q1examples[0][2] > q1examples[1][2]) {
 				q1more = "left";
 				q1less = "right";
@@ -599,8 +476,8 @@ experiment = {
 				q1less = "left";
 			    }
 			} else {
-			    var q1newPath0 = "M " + (canvasWidth/2 + 100) + " " + canvasHeight*4/5;
-			    var q1newPath1 =  "M " + (canvasWidth/2 - 100) + " " + canvasHeight*4/5;
+			    var q1newPath0 = translate(q1Path0, (canvasWidth/2 + 100), canvasHeight*4/5);
+			    var q1newPath1 = translate(q1Path1, (canvasWidth/2 - 100), canvasHeight*4/5);
 			    if (q1examples[0][2] > q1examples[1][2]) {
 				q1more = "right";
 				q1less = "left";
@@ -613,12 +490,6 @@ experiment = {
 			    q1correctanswer = "yes";
 			} else {
 			    q1correctanswer = "no";
-			}
-			for (z=3; z < q1match0.length; z++) {
-			    q1newPath0 += " " + q1match0[z];
-			}
-			for (z=3; z < q1match1.length; z++) {
-			    q1newPath1 += " " + q1match1[z];
 			}
 			setTimeout(function() {
 			    q1examples[0][0].animate({path: q1newPath0}, 1000, ">");
@@ -715,10 +586,7 @@ experiment = {
 	$("#bottomtext").show();
 	var qtestpath = qtestExample[1];
 	var qmatchtest = qtestpath.split(' ');
-	qnewPathtest = qmatchtest[0] + " " + (canvasWidth/2) + " " + (canvasHeight*4/5);
-	for (z=3; z < qmatchtest.length; z++) {
-	    qnewPathtest += " " + qmatchtest[z];
-	}
+	qnewPathtest = translate(qtestpath, (canvasWidth/2), (canvasHeight*4/5));
 	qtestExample[0].animate({path: qnewPathtest}, 1000, ">");
 	setTimeout(function() {
 	    startTime = (new Date()).getTime();
@@ -871,65 +739,5 @@ Array.prototype.random = function() { return this[random(this.length)]; }
 Array.prototype.cloneArray = function() { return this.slice(0); }
 
 function name(obj) {
-    var sname;
-    switch(obj) {
-    case gauss:
-	sname = "gauss";
-	break;
-    case peakedup:
-	sname = "peakedup";
-	break;
-    case peakeddown:
-	sname = "peakeddown";
-	break;
-    case flat:
-	sname = "flat";
-	break;
-    case bowl:
-	sname = "bowl";
-	break;
-    case fakerectangle: 
-	sname = "fakerectangle";
-	break;
-    case sidewayshouse:
-	sname = "sidewayshouse";
-	break;
-    case cushion:
-	sname = "cushion";
-	break;
-    case shaker:
-	sname = "shaker";
-	break;
-    case shaker:
-	sname = "shaker";
-	break;
-    case chair:
-	sname = "chair";
-	break;
-    case steps:
-	sname = "steps";
-	break;
-    case spool:
-	sname = "spool";
-	break;
-    case arrow:
-	sname = "arrow";
-	break;
-    case z_tetronimo:
-	sname = "z_tetronimo";
-	break;
-    case l_shape:
-	sname = "l_shape";
-	break;
-    case wonkystar:
-	sname = "wonkystar";
-	break;
-    case triangle:
-	sname = "triangle";
-	break;
-    case almostparallelogram:
-	sname = "almostparallelogram";
-	break;
-    }
-    return sname;
+    return "ADD NAME";
 }
