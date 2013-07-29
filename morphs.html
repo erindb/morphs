@@ -78,25 +78,28 @@ function dist(now, old) {
   return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
 }
 
-function curveTo(old, now) {
+function curveTo(polar_old, polar_now) {
+  //takes in polar coordinates!!!!
+  var now = rect(polar_now);
+  var old = rect(polar_old);
   var d = dist(now, old);
-  if (d < 10) { return " L " + now.x + "," + now.y; } else {
-    var mx = (now.x + old.x)/2;
-    var my = (now.y + old.y)/2;
-    var median = {x: mx, y: my};
-    var D = dist(center, median);
-    var rx_ub = center.x - Math.abs(median.x - center.x);
-    var ry_ub = center.y - Math.abs(median.y - center.y);
-    var rx = uniform(0,rx_ub);
-    var ry = uniform(0,ry_ub);
-    var qx = mx + (rx*(mx - center.x)/D);
-    var qy = my + (ry*(my - center.y)/D);
-    return " Q " + qx + "," + qy + " " + now.x + "," + now.y;
+  if (d < 10) { return " L " + polar_now.x + "," + polar_now.y; } else {
+    var q = { theta: (polar_now.theta + polar_old.theta)/2,
+              r: uniform(Math.min(polar_now.r, polar_old.r), max_radius*2) };
+    return " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
   }
 }
 
 var size = {x: 300, y: 300};
 var center = {x: size.x/2, y: size.y/2};
+var max_radius = Math.min(center.x, center.y);
+
+function rect(p) {
+  //convert to rectangular coordinates
+  var x = center.x + p.r*Math.cos(p.theta);
+  var y = center.y + p.r*Math.sin(p.theta);
+  return {x: x, y: y};
+}
 
 /*\
 polygon
@@ -104,7 +107,6 @@ polygon
 - n (integer) number of vertices for the polygon
 \*/
 function polygon(n) {
-  var max_radius = Math.min(center.x, center.y);
   var vertices = [];
   for (var i=0; i<n; i++) {
     //polar coordinates of vertices such that if you divide a circle into n
@@ -114,24 +116,20 @@ function polygon(n) {
     var theta_lb = i*2*Math.PI/n; //lower bound
     var theta_ub = (i+1)*2*Math.PI/n; //upper bound
     var theta = uniform( theta_lb, theta_ub ); //in radians
-    var radius = uniform( max_radius*0.1, max_radius );
-    //convert to rectangular coordinates
-    var x = center.x + radius*Math.cos(theta);
-    var y = center.y + radius*Math.sin(theta);
-    vertices.push({x:x, y:y})
+    var radius = uniform( max_radius*0.1, max_radius*0.5 );
+    /*
+    */
+    vertices.push({theta:theta, r:radius})
   }
-  var path = "M " + vertices[0].x + "," + vertices[0].y;
+  var first = rect(vertices[0]);
+  var path = "M " + first.x + "," + first.y;
   for (var i=1; i<n; i++) {
     var curve = bernoulli();
-    var x = vertices[i].x;
-    var y = vertices[i].y;
+    var now = rect(vertices[i]);
     if (curve) {
-      var old = {x: vertices[i-1].x, y: vertices[i-1].y};
-      var now = {x: x, y:y};
-      var add = curveTo(old, now);
-      path += add;
+      path += curveTo(vertices[i-1], vertices[i]); //takes polar coords!!!
     } else {
-      path += " L " + x + "," + y;
+      path += " L " + now.x + "," + now.y;
     }
   }
   var curve = bernoulli();
@@ -140,38 +138,15 @@ function polygon(n) {
     var old = {x: vertices[n-1].x, y: vertices[n-1].y};
     path += curveTo(old, now);
   } else {
-    path += " L " + x + "," + y;
+    path += " L " + now.x + "," + now.y;
   }
   path += " Z";
+  console.log(path);
   return path;
-  /*
-  for (var i=0; i<n; i++) {
-    var c = colors[i];
-    //polar coordinates of vertices such that if you divide a circle into n
-    //evenly spaced sectors, each sector will have exactly one vertex whose
-    //angle from the origin falls in that sector, and the radius is a positive
-    //number between 50 and 300.
-    var theta_lb = i*2*Math.PI/n; //lower bound
-    var theta_ub = (i+1)*2*Math.PI/n; //upper bound
-    var theta = uniform( theta_lb, theta_ub ); //in radians
-    var radius = uniform( max_radius/10, max_radius );
-    //convert to rectangular coordinates
-    var x = center.x + radius*Math.cos(theta);
-    var y = center.y + radius*Math.sin(theta);
-    if (i > 0) {
-      if (y > max_radius*0.7) {var ry = 200} else {var ry = uniform(50, 200);}
-      if (x > max_radius*0.7) {var rx = 200} else {var rx = uniform(50, 200);}
-      path +=" A "+rx+","+ry+" 0 0 1";
-    }
-    path += ( " " + x.toString() + "," + y.toString() );
-  }
-  path += " Z";
-  return path;
-  */
 }
 
 var paper = Raphael("polygon", size.x, size.y);
-var n = 6; //number of vertices for the shapes
+var n = 10; //number of vertices for the shapes
 var color = colorScheme.get()
 var poly1 = paper.path(polygon(n));
 var poly2 = paper.path(polygon(n));
@@ -179,8 +154,8 @@ poly2.hide();
 poly1.attr({"stroke-width":4, "fill":color});
 poly2.attr({"stroke-width":4, "fill":color});
 poly1.animate(attrify(poly2), 1000);
-var origin = paper.circle(center.x, center.y, 3);
-origin.attr({fill:"black"});
+//var origin = paper.circle(center.x, center.y, 3);
+//origin.attr({fill:"black"});
 </script>
 
 </body>

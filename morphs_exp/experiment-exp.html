@@ -1,0 +1,137 @@
+<html>
+    <head>
+<meta name="robots" content="noindex,nofollow">
+<title>Experiment</title>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<script src="mmturkey.0.5.js"></script>
+<script src="raphael-min.js" type="text/javascript"></script>
+	<link rel="stylesheet" href="style.css" />
+</head> 
+    <body>
+
+<div class="slide" id="instructions">
+  <img src="stanford.png" alt="Stanford University">
+		<p id='logo-text'>Stanford Computation and Cognition Lab</p>
+	<p class="block-text">In this experiment, you will see
+  different shapes displayed on the screen. You'll be given some
+  information about them, and then asked to answer simple questions
+  based on what you have seen.
+	</p>
+	<button type="button" onclick="experiment.intro()">Start</button>
+    <p class="block-text" id="mustaccept">
+You must accept the HIT in order to continue.
+  </p>
+	<p class="block-text" id="legal">
+  Legal information: By answering the
+		following questions, you are participating in a study being performed by
+		cognitive scientists in the Stanford Department of Psychology. If you have
+		questions about this research, please contact Dan Lassiter at <a
+		href="mailto://danlassiter@stanford.edu">danlassiter@stanford.edu</a> or Noah
+		Goodman at ngoodman@stanford.edu. You must be  at least 18 years old to
+		participate.
+  
+  Your participation in this research is voluntary. You may
+		decline to answer any or all of the following questions. You may decline
+		further participation, at any time, without adverse consequences. Your
+		anonymity is assured; the researchers who have requested your
+		participation will not receive any personal information about you.
+  </p>
+<br/>
+    <p class="block-text">Please note: this HIT will be easiest to complete in
+		Firefox, Opera, or the newest version of Chrome. There
+		are known problems with Internet Explorer and with
+		earlier versions of Chrome 15.
+  </p>
+</div>
+
+<div class="slide" id="intro">
+
+<p id="centered"><b>Instructions</b></p>
+  
+<p>In this experiment, we would like you to imagine that an alien race
+  has been discovered. You are going to learn some of the words from
+  the language these aliens speak. These are the words used to refer to alien artifacts and their properties.</p>
+
+  <p>After seeing examples of a new kind of object you will be asked a series of questions. Make sure you study the objects carefully before answering!</p>
+<p>Please click "Begin" when you're ready to start.</p>
+<button type="button" id="begin" value="Begin" onclick="experiment.begin()">Begin</button>
+</div>
+
+<div class="slide" id="stage">
+  
+<div class="canvas" id="canvas0"></div>
+<div class="canvas" id="canvas1"></div>
+<div class="canvas" id="canvas2"></div>
+<div class="canvas" id="canvas3"></div>
+<div class="canvas" id="canvas4"></div>
+<div class="canvas" id="canvas5"></div>
+<div class="canvas" id="canvas6"></div>
+
+<p class="feedback" id="correctanswer">{{}}</p>
+<p class="feedback" id="wronganswer">{{}}</p>
+
+<p id="bottomtext">{{}}</p>
+	 <button type="button" class="moveon" id="introbutton">Continue</button>
+<form id="form">
+<div class="response" id="ratings">
+	    <td><input class="agreement" name="agreement" type="radio" id="a1" value="no" /></td>
+ <th><label for="v2">No</label></td>  
+	    <td><input class="agreement" name="agreement" type="radio"
+	       id="a2" value="yes" /></td>
+	      	    <th><label for="v1">Yes</label></th>
+
+	  </div>
+	  
+	  <div class="response" id="confidence">
+	    	<table class="ratings">
+		  
+	<p>Please indicate how confident you are in your answer using the scale below.</p>
+
+	  <tr>
+	    
+Less confident &nbsp; &nbsp; 
+ <input class="rating" name="rating" type="radio" id="v1" value="1" />
+	    <input class="rating" name="rating" type="radio" id="v2" value="2" />
+	    <input class="rating" name="rating" type="radio" id="v3" value="3" />
+	    <input class="rating" name="rating" type="radio" id="v4" value="4" />
+	    <input class="rating" name="rating" type="radio" id="v5" value="5" />
+	    <input class="rating" name="rating" type="radio" id="v6" value="6" />
+	    <input class="rating" name="rating" type="radio" id="v7" value="7" />
+	    <input class="rating" name="rating" type="radio" id="v8" value="8" />
+	    <input class="rating" name="rating" type="radio"
+	      id="v9" value="9" />
+	 &nbsp; &nbsp; More confident
+	  </tr>
+
+	</table>
+	<p id="error">Please answer both questions before continuing.</p>
+	<br/>
+</div>	 
+
+	 <button type="button" class="moveon" id="continue">Continue</button>
+
+      </form>
+</div>
+
+</div>
+
+<div class="slide" id="language">
+	<p>Last question: what is your native language (the language that
+	was spoken at home when you were a child)?</p>
+  <p>Please enter it below, and then click 'Submit' (do NOT press the
+	return key!). 
+  <form id="lgform">
+  <input type="text" name="lg"></input>
+  <button type="button" id="lgsubmit">Submit</button>
+  </form>
+</div>
+
+<div class="slide" id="finished">
+	You're finished - thanks for participating! Submitting to Mechanical Turk...
+</div>
+
+<script src="morphs_exp.js" type="text/javascript"></script>
+
+    </body>
+</html>
