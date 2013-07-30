@@ -1,3 +1,30 @@
+  // creates an image partway between two other images, as in the animations
+  // by Raphael.js
+  function intermediate(from, to, pos) {
+    var fromCurve = Raphael.path2curve(from);
+    var toCurve = Raphael.path2curve(to);
+    var diff = [];
+    var attr = "path";
+    //compute difference between paths and store in diff
+    for (i = 0, ii = fromCurve.length; i < ii; i++) {
+      diff[i] = [0];
+      for (var j = 1, jj = fromCurve[i].length; j < jj; j++) {
+        diff[i][j] = (toCurve[i][j] - fromCurve[i][j]);
+      }
+    }
+    var S = " ";
+    now = [];
+    //compute new path string for intermediate image
+    for (var i = 0, ii = fromCurve.length; i < ii; i++) {
+      now[i] = [fromCurve[i][0]];
+      for (var j = 1, jj = fromCurve[i].length; j < jj; j++) {
+        now[i][j] = +fromCurve[i][j] + pos * diff[i][j];
+      }
+      now[i] = now[i].join(S);
+    }
+    return now.join(S);
+  }
+
 function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i; j = parseInt(Math.random() * i), x = newarray[--i], newarray[i] = newarray[j], newarray[j] = x);return newarray;} // non-destructive.
 
 function uniformAroundMean(mean, radius) {
@@ -45,8 +72,9 @@ function uniform(a, b) {
   return ( (Math.random()*(b-a))+a );
 }
 
-function bernoulli() {
-  if (Math.random() > 0.5) {return true;} else {return false;}
+function bernoulli(p) {
+  var p = p || 0.5;
+  if (Math.random() > p) {return true;} else {return false;}
 }
 
 function attrify(p) {
@@ -68,10 +96,13 @@ function curveTo(polar_old, polar_now) {
   var now = rect(polar_now);
   var old = rect(polar_old);
   var d = dist(now, old);
-  if (d < 10) { return " L " + polar_now.x + "," + polar_now.y; } else {
+  if (d < 10) {
+    return " L " + now.x + "," + now.y;
+  } else {
     var q = { theta: (polar_now.theta + polar_old.theta)/2,
-              r: uniform(Math.min(polar_now.r, polar_old.r), max_radius*2) };
-    return " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
+              r: uniform((Math.min(polar_now.r, polar_old.r)-50), max_radius*2) };
+    retString = " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
+    return retString;
   }
 }
 
@@ -83,7 +114,7 @@ function rect(p) {
   //convert to rectangular coordinates
   var x = center.x + p.r*Math.cos(p.theta);
   var y = center.y + p.r*Math.sin(p.theta);
-  return {x: x, y: y};
+  return {x: x, y: y, curve:p.curve};
 }
 
 /*\
@@ -93,6 +124,7 @@ polygon
 \*/
 function polygon(n) {
   var vertices = [];
+  var curve_p = Math.random();
   for (var i=0; i<n; i++) {
     //polar coordinates of vertices such that if you divide a circle into n
     //evenly spaced sectors, each sector will have exactly one vertex whose
@@ -101,31 +133,33 @@ function polygon(n) {
     var theta_lb = i*2*Math.PI/n; //lower bound
     var theta_ub = (i+1)*2*Math.PI/n; //upper bound
     var theta = uniform( theta_lb, theta_ub ); //in radians
-    var radius = uniform( max_radius*0.1, max_radius*0.5 );
-    /*
-    */
-    vertices.push({theta:theta, r:radius})
+    var curve = bernoulli(curve_p);
+    if (curve) {
+      var radius = uniform( max_radius*0.1, max_radius*0.5 );
+    } else {
+      var radius = uniform( max_radius*0.1, max_radius );
+    }
+    vertices.push({theta:theta, r:radius, curve:curve})
   }
   var first = rect(vertices[0]);
   var path = "M " + first.x + "," + first.y;
   for (var i=1; i<n; i++) {
-    var curve = bernoulli();
     var now = rect(vertices[i]);
+    var curve = now.curve;
     if (curve) {
       path += curveTo(vertices[i-1], vertices[i]); //takes polar coords!!!
     } else {
       path += " L " + now.x + "," + now.y;
     }
   }
-  var curve = bernoulli();
-  if (curve) {
-    var now = {x: vertices[0].x, y: vertices[0].y};
-    var old = {x: vertices[n-1].x, y: vertices[n-1].y};
-    path += curveTo(old, now);
-  } else {
-    path += " L " + now.x + "," + now.y;
-  }
-  path += " Z";
+  /*if (curve) {
+    var addition = curveTo(vertices[n-1], vertices[0]);
+    var segs = addition.split(' ');
+    var curve_point = segs[2];
+    path += " Q "+addition;
+  } else {*/
+    path += " L " + first.x + "," + first.y;
+  //}
   console.log(path);
   return path;
 }
@@ -186,32 +220,62 @@ var z_tetronimo = {
 function posify(pathString, xpos, ypos) {
   var segments = pathString.split(" ");
   var ret_string = segments[0]; //M
+  var type = "x";
   for (var i=1; i<(segments.length-1); i++) {
     var seg = segments[i];
-    if (seg == "Q" || seg == "L") {
-      ret_string += (" " + seg)
-    } else {
-      var point = seg.split(',');
-      var x = (((parseFloat(point[0])-150)*0.2)+xpos).toString();
-      var y = (((parseFloat(point[1])-150)*0.2)+ypos).toString();
-      ret_string += (" " + x + "," + y);
+    if (type == "x") {
+      if (seg == "Q" || seg == "L" || seg == "C" || seg == "Z" || seg == "z") {
+        ret_string += (" " + seg);
+        type = "x"
+      } else {
+        var x = (((parseFloat(seg)-150)*0.2)+xpos).toString();
+        ret_string += (" " + x);
+        type = "y";
+      }
+    } else if (type == "y") {
+      var y = (((parseFloat(seg)-150)*0.2)+ypos).toString();
+        ret_string += (" " + y);
+      type = "x";
     }
   }
-  ret_string += (" " + segments[segments.length]); //z
   return ret_string;
 }
 
 function translate(pathString, xpos, ypos) {
+
+
+
   var segments = pathString.split(" ");
   var ret_string = segments[0]; //M
-  var first_seg = segments[1].split(',');
-  var old_xpos = first_seg[0];
-  var old_ypos = first_seg[1];
+  var old_xpos = segments[1];
+  var old_ypos = segments[2];
   var xdiff = xpos - old_xpos;
   var ydiff = ypos - old_ypos;
+  
+  var type = "x";
   for (var i=1; i<(segments.length-1); i++) {
     var seg = segments[i];
-    if (seg == "Q" || seg == "L") {
+    if (type == "x") {
+      if (seg == "Q" || seg == "L" || seg == "C" || seg == "Z" || seg == "z") {
+        ret_string += (" " + seg);
+        type = "x"
+      } else {
+        var x = (parseFloat(seg)+xdiff).toString();
+        ret_string += (" " + x);
+        type = "y";
+      }
+    } else if (type == "y") {
+      var y = (parseFloat(seg)+ydiff).toString();
+        ret_string += (" " + y);
+      type = "x";
+    }
+  }
+  return ret_string;
+
+
+  for (var i=1; i<(segments.length-1); i++) {
+    var seg = segments[i];
+    if (seg == "Q" || seg == "L" || set == "C") {
       ret_string += (" " + seg)
     } else {
       var point = seg.split(',');
@@ -243,7 +307,7 @@ var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
 var numberOfQuestionsPerTrial = 2;
-var shapes = [[polygon(7), polygon(7)]];
+var shapes = [[polygon(7, true), polygon(7, false)]];
 var adjectives = ["furby"];
 var nouns = ["wug"];
 var colors = ["#FF0000"];
@@ -372,7 +436,10 @@ experiment = {
 		    if (idx == q1ex1idx) {
 			q1ex1posInOSS = posInOSS;
 		    }
-		    var tmpPath = posify("M 169.52168037144816,162.51411455385818 L 167.2817274409099,168.09851007232768 L 143.8025165078412,218.54147553113944 Q 78.72604949204089,322.8111333655915 124.11004426842815,181.22931455192736 Q -57.2023423802689,302.69368358641407 103.55909190039498,169.17467576822642 L 82.60588882788927,130.81720888580756 Q 92.99468919608893,106.66129595105541 113.49438635472598,90.19398437695303 L 131.6901865838503,92.81267431774906 Q 181.55270069655708,-65.83880238261446 185.13925805271964,98.65647119960451 Q 232.3836707970368,80.89213582688545 197.81165196114495,128.34082476468785 L 169.52168037144816,162.51411455385818 Z", xpos, ypos); //toPathString(morphBetween(trialparameters.leftShape, trialparameters.rightShape, morphProp), xpos, ypos);
+		    var inter = intermediate(trialparameters.leftShape, trialparameters.rightShape, morphProp);
+		    console.log(inter);
+		    var tmpPath = posify(inter, xpos, ypos); //toPathString(morphBetween(trialparameters.leftShape, trialparameters.rightShape, morphProp), xpos, ypos);
+		    console.log(tmpPath);
 		    var tmpObj = paper.path(tmpPath);
 		    onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
 		    posInOSS++;
