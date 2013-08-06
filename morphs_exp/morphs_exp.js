@@ -1,3 +1,8 @@
+function sign(x) { if (x < 0) { return -1; } else {return 1;} }
+function uniform(a, b) { return ( (Math.random()*(b-a))+a ); }
+function lowSkew(a, b) { return (((1/uniform(1,10))*(b-a)) + a); }
+function highSkew(a, b) { return (((1 - lowSkew(0,1))*(b-a)) + a); }
+
   // creates an image partway between two other images, as in the animations
   // by Raphael.js
   function intermediate(from, to, pos) {
@@ -67,10 +72,6 @@ function ColorRandomizer(nSteps) {
 }
 
 var colorScheme = new ColorRandomizer;
-  
-function uniform(a, b) {
-  return ( (Math.random()*(b-a))+a );
-}
 
 function bernoulli(p) {
   var p = p || 0.5;
@@ -83,12 +84,17 @@ function attrify(p) {
           "stroke-width":p.attr()["stroke-width"]}
 }
 
-function sign(x) {
-  if (x < 0) { return -1; } else {return 1}
-}
-
 function dist(now, old) {
   return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
+}
+
+function pathTo(nowP, oldP) {
+  var nowR = rect(nowP);
+  var q = { theta: (nowP.theta + oldP.theta) / 2,
+            radius: ((nowP.radius + oldP.radius)/2) + ((nowP.curviness - 0.5)*100),
+            curviness: 0};
+  var pathAddition = " Q " + rect(q).x + "," + rect(q).y + " " + nowR.x + "," + nowR.y;//" L " + nowR.x + "," + nowR.y;
+  return pathAddition;
 }
 
 function curveTo(polar_old, polar_now, curviness, variance) {
@@ -111,17 +117,20 @@ function curveTo(polar_old, polar_now, curviness, variance) {
   }
 }
 
-var size = {x: 300, y: 300};
-var center = {x: size.x/2, y: size.y/2};
-var max_radius = Math.min(center.x, center.y);
-
 function rect(p) {
   //convert to rectangular coordinates
-  var x = center.x + p.r*Math.cos(p.theta);
-  var y = center.y + p.r*Math.sin(p.theta);
-  return {x: x, y: y, curve:p.curve};
+  var x = center.x + p.radius*Math.cos(p.theta);
+  var y = center.y + p.radius*Math.sin(p.theta);
+  return {x: x, y: y, curviness:p.curviness};
 }
 
+
+
+var size = {x: 300, y: 300};
+var center = {x: size.x/2, y: size.y/2};
+var maxRadius = Math.min(center.x, center.y);
+var minRadius = maxRadius*0.2;
+var fullCircle = 2*Math.PI;
 /*\
 polygon
 [ method ]
@@ -129,48 +138,28 @@ polygon
 \*/
 function polygon(n) {
   var curviness = Math.random();
-  var bound = Math.random();
-  var maxmult = 1;
-  var minmult = (bound*2)+1;
+  var r1 = highSkew(minRadius, maxRadius);
+  var r2 = lowSkew(minRadius, maxRadius);
+  var thisMaxRadius = Math.max(r1,r2);
+  var thisMinRadius = Math.min(r1,r2);
+  var theta = 0;//uniform(0,fullCircle); //randomly pick first vertex
   var vertices = [];
-  var variance = uniform(20, 200);
-  var curve_p = Math.random();
   for (var i=0; i<n; i++) {
-    //polar coordinates of vertices such that if you divide a circle into n
-    //evenly spaced sectors, each sector will have exactly one vertex whose
-    //angle from the origin falls in that sector, and the radius is a positive
-    //number between 50 and 300.
-    var theta_lb = i*2*Math.PI/n; //lower bound
-    var theta_ub = (i+1)*2*Math.PI/n; //upper bound
-    var theta = uniform( theta_lb, theta_ub ); //in radians
-    var curve = bernoulli(curve_p);
-    if (curve) {
-      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult*0.5 );
-    } else {
-      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult );
-    }
-    vertices.push({theta:theta, r:radius, curve:curve})
+    //maximal angular distance between vertices => fewest vertices
+    var radius = uniform(thisMinRadius, thisMaxRadius);
+    vertices.push({theta: theta, radius: radius, curviness:curviness});
+    var maxThetaDiff = (fullCircle-theta)/(n-i);
+    var minThetaDiff = maxThetaDiff*0.2;
+    thetaDiff = highSkew(minThetaDiff, maxThetaDiff);
+    theta += thetaDiff;
   }
-  var first = rect(vertices[0]);
-  var path = "M " + first.x + "," + first.y;
-  for (var i=1; i<n; i++) {
-    var now = rect(vertices[i]);
-    var curve = now.curve;
-    if (curve) {
-      path += curveTo(vertices[i-1], vertices[i], curviness, variance); //takes polar coords!!!
-    } else {
-      path += " L " + now.x + "," + now.y;
-    }
+  var firstR = rect(vertices[0]); //rectangular coords for first vertex
+  var path = "M " + firstR.x + "," + firstR.y;
+  for (var i=1; i<vertices.length; i++) {
+    path += pathTo(vertices[i], vertices[i-1]);
   }
-  /*if (curve) {
-    var addition = curveTo(vertices[n-1], vertices[0]);
-    var segs = addition.split(' ');
-    var curve_point = segs[2];
-    path += " Q "+addition;
-  } else {*/
-    path += " L " + first.x + "," + first.y;
-  //}
-  console.log(path);
+  var lastR = rect(vertices[n-1]);
+  path += " L " + lastR.x + "," + lastR.y;//pathTo(vertices[0], vertices[n-1]); //WHYYYYYYY
   return path;
 }
 
@@ -270,13 +259,13 @@ var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
 var numberOfQuestionsPerTrial = 6;
-var shapes = [[polygon(7), polygon(7)],
-              [polygon(7), polygon(7)],
-              [polygon(7), polygon(7)],
-              [polygon(7), polygon(7)],
-              [polygon(7), polygon(7)],
-              [polygon(7), polygon(7)],
-              [polygon(7), polygon(7)]];
+var shapes = [[polygon(15), polygon(15)],
+              [polygon(15), polygon(15)],
+              [polygon(15), polygon(15)],
+              [polygon(15), polygon(15)],
+              [polygon(15), polygon(15)],
+              [polygon(15), polygon(15)],
+              [polygon(15), polygon(15)]];
 var adjectives = ["furby", "dibty", "halmy", "wiggy", "grondy", "alby", "hartny"];
 var nouns = ["wug", "sarma", "bejeeba", "twan", "pimwit", "barnda", "slubja"];
 var colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF","#FFCC99"];
@@ -415,7 +404,7 @@ experiment = {
 		}
 	    }
 	    var st = paper.setFinish();
-	    st.attr({stroke: '#000', fill: trialparameters.color});
+	    st.attr({stroke: '#000', 'stroke-width': 1, fill: trialparameters.color});
 	    $("#introbutton").show();
 	    $("#introbutton").click(function() {
 // animation giving subjects information about the array of shapes
