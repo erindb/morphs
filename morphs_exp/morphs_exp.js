@@ -91,8 +91,13 @@ function dist(now, old) {
   return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
 }
 
-function curveTo(polar_old, polar_now) {
+function curveTo(polar_old, polar_now, curviness, variance) {
   //takes in polar coordinates!!!!
+  var mincurve = (Math.min(polar_now.r, polar_old.r)-50);
+  var maxcurve = (max_radius*2);
+  var center = (curviness*(maxcurve - mincurve))+mincurve;
+  var minthiscurve = Math.max(mincurve, center - variance);
+  var maxthiscurve = Math.min(maxcurve, center + variance);
   var now = rect(polar_now);
   var old = rect(polar_old);
   var d = dist(now, old);
@@ -100,7 +105,7 @@ function curveTo(polar_old, polar_now) {
     return " L " + now.x + "," + now.y;
   } else {
     var q = { theta: (polar_now.theta + polar_old.theta)/2,
-              r: uniform((Math.min(polar_now.r, polar_old.r)-50), max_radius*2) };
+              r: uniform(minthiscurve, maxthiscurve) };
     retString = " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
     return retString;
   }
@@ -123,7 +128,12 @@ polygon
 - n (integer) number of vertices for the polygon
 \*/
 function polygon(n) {
+  var curviness = Math.random();
+  var bound = Math.random();
+  var maxmult = 1;
+  var minmult = (bound*2)+1;
   var vertices = [];
+  var variance = uniform(20, 200);
   var curve_p = Math.random();
   for (var i=0; i<n; i++) {
     //polar coordinates of vertices such that if you divide a circle into n
@@ -135,9 +145,9 @@ function polygon(n) {
     var theta = uniform( theta_lb, theta_ub ); //in radians
     var curve = bernoulli(curve_p);
     if (curve) {
-      var radius = uniform( max_radius*0.1, max_radius*0.5 );
+      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult*0.5 );
     } else {
-      var radius = uniform( max_radius*0.1, max_radius );
+      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult );
     }
     vertices.push({theta:theta, r:radius, curve:curve})
   }
@@ -147,7 +157,7 @@ function polygon(n) {
     var now = rect(vertices[i]);
     var curve = now.curve;
     if (curve) {
-      path += curveTo(vertices[i-1], vertices[i]); //takes polar coords!!!
+      path += curveTo(vertices[i-1], vertices[i], curviness, variance); //takes polar coords!!!
     } else {
       path += " L " + now.x + "," + now.y;
     }
@@ -165,57 +175,10 @@ function polygon(n) {
 }
 
 
+
+
 //*****************************************************************************
 
-
-
-var spool = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 25,
-	"vertical": 25
-    },
-    "l23": {
-	"horizontal": 0,
-	"vertical": -25
-    },
-    "l34": {
-	"horizontal": -25,
-	"vertical": -25
-    }
-};
-
-var z_tetronimo = {
-    "vstart": 0,
-    "l12": {
-	"horizontal": 37.5,
-	"vertical": 0
-    },
-    "l23": {
-	"horizontal": 0,
-	"vertical": -15
-    },
-    "l34": {
-	"horizontal": 15,
-	"vertical": 0
-    },
-    "l45": {
-	"horizontal": 0,
-	"vertical": 15
-    },
-    "l56": {
-	"horizontal": -30,
-	"vertical": 0
-    },
-    "l67": {
-	"horizontal": 0,
-	"vertical": -15
-    },
-    "l78": {
-	"horizontal": -15,
-	"vertical": 0
-    }
-};
 
 function posify(pathString, xpos, ypos) {
   var segments = pathString.split(" ");
@@ -306,12 +269,18 @@ var topMargin = 75;
 var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
-var numberOfQuestionsPerTrial = 2;
-var shapes = [[polygon(7, true), polygon(7, false)]];
-var adjectives = ["furby"];
-var nouns = ["wug"];
-var colors = ["#FF0000"];
-var distributions = [[gauss,"left"]];
+var numberOfQuestionsPerTrial = 6;
+var shapes = [[polygon(7), polygon(7)],
+              [polygon(7), polygon(7)],
+              [polygon(7), polygon(7)],
+              [polygon(7), polygon(7)],
+              [polygon(7), polygon(7)],
+              [polygon(7), polygon(7)],
+              [polygon(7), polygon(7)]];
+var adjectives = ["furby", "dibty", "halmy", "wiggy", "grondy", "alby", "hartny"];
+var nouns = ["wug", "sarma", "bejeeba", "twan", "pimwit", "barnda", "slubja"];
+var colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF","#FFCC99"];
+var distributions = [[gauss,"left"], [gauss,"right"], [peakedup,"left"], [peakedup,"right"],  [peakeddown,"left"], [peakeddown,"right"],  [flat,"left"], [flat,"right"]];
 var myTrialAdjectives = shuffle(adjectives);
 var myTrialNouns = shuffle(nouns);
 var myTrialShapes = shuffle(shapes);

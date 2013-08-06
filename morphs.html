@@ -108,8 +108,13 @@ function dist(now, old) {
   return Math.sqrt( Math.pow(now.x - old.x, 2) + Math.pow(now.y - old.y, 2) );
 }
 
-function curveTo(polar_old, polar_now) {
+function curveTo(polar_old, polar_now, curviness, variance) {
   //takes in polar coordinates!!!!
+  var mincurve = (Math.min(polar_now.r, polar_old.r)-50);
+  var maxcurve = (max_radius*2);
+  var center = (curviness*(maxcurve - mincurve))+mincurve;
+  var minthiscurve = Math.max(mincurve, center - variance);
+  var maxthiscurve = Math.min(maxcurve, center + variance);
   var now = rect(polar_now);
   var old = rect(polar_old);
   var d = dist(now, old);
@@ -117,7 +122,7 @@ function curveTo(polar_old, polar_now) {
     return " L " + now.x + "," + now.y;
   } else {
     var q = { theta: (polar_now.theta + polar_old.theta)/2,
-              r: uniform((Math.min(polar_now.r, polar_old.r)-50), max_radius*2) };
+              r: uniform(minthiscurve, maxthiscurve) };
     retString = " Q " + rect(q).x + "," + rect(q).y + " " + now.x + "," + now.y;
     return retString;
   }
@@ -140,7 +145,12 @@ polygon
 - n (integer) number of vertices for the polygon
 \*/
 function polygon(n) {
+  var curviness = Math.random();
+  var bound = Math.random();
+  var maxmult = 1;
+  var minmult = (bound*2)+1;
   var vertices = [];
+  var variance = uniform(20, 200);
   var curve_p = Math.random();
   for (var i=0; i<n; i++) {
     //polar coordinates of vertices such that if you divide a circle into n
@@ -152,9 +162,9 @@ function polygon(n) {
     var theta = uniform( theta_lb, theta_ub ); //in radians
     var curve = bernoulli(curve_p);
     if (curve) {
-      var radius = uniform( max_radius*0.1, max_radius*0.5 );
+      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult*0.5 );
     } else {
-      var radius = uniform( max_radius*0.1, max_radius );
+      var radius = uniform( max_radius*minmult*0.1, max_radius*maxmult );
     }
     vertices.push({theta:theta, r:radius, curve:curve})
   }
@@ -164,7 +174,7 @@ function polygon(n) {
     var now = rect(vertices[i]);
     var curve = now.curve;
     if (curve) {
-      path += curveTo(vertices[i-1], vertices[i]); //takes polar coords!!!
+      path += curveTo(vertices[i-1], vertices[i], curviness, variance); //takes polar coords!!!
     } else {
       path += " L " + now.x + "," + now.y;
     }
