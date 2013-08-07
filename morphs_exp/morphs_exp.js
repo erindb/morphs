@@ -90,10 +90,17 @@ function dist(now, old) {
 
 function pathTo(nowP, oldP) {
   var nowR = rect(nowP);
-  var q = { theta: (nowP.theta + oldP.theta) / 2,
+  if (nowP.theta > 0) {
+    var nowTheta = nowP.theta;
+  } else {
+    var nowTheta = FULLCIRCLE;
+  }
+  var qP = { theta: (nowTheta + oldP.theta) / 2,
             radius: ((nowP.radius + oldP.radius)/2) + ((nowP.curviness - 0.5)*100),
             curviness: 0};
-  var pathAddition = " Q " + rect(q).x + "," + rect(q).y + " " + nowR.x + "," + nowR.y;//" L " + nowR.x + "," + nowR.y;
+  var qR = rect(qP);
+  var oldR = rect(oldP);
+  var pathAddition = " Q " + qR.x + "," + qR.y + " " + nowR.x + "," + nowR.y;
   return pathAddition;
 }
 
@@ -130,7 +137,7 @@ var size = {x: 300, y: 300};
 var center = {x: size.x/2, y: size.y/2};
 var maxRadius = Math.min(center.x, center.y);
 var minRadius = maxRadius*0.2;
-var fullCircle = 2*Math.PI;
+var FULLCIRCLE = 2*Math.PI;
 /*\
 polygon
 [ method ]
@@ -148,18 +155,20 @@ function polygon(n) {
     //maximal angular distance between vertices => fewest vertices
     var radius = uniform(thisMinRadius, thisMaxRadius);
     vertices.push({theta: theta, radius: radius, curviness:curviness});
-    var maxThetaDiff = (fullCircle-theta)/(n-i);
+    var maxThetaDiff = (FULLCIRCLE-theta)/(n-i);
     var minThetaDiff = maxThetaDiff*0.2;
     thetaDiff = highSkew(minThetaDiff, maxThetaDiff);
     theta += thetaDiff;
   }
-  var firstR = rect(vertices[0]); //rectangular coords for first vertex
+  var firstP = vertices[0]; //polar coords for first vertex
+  var firstR = rect(firstP); //rectangular coords for first vertex
   var path = "M " + firstR.x + "," + firstR.y;
   for (var i=1; i<vertices.length; i++) {
     path += pathTo(vertices[i], vertices[i-1]);
   }
-  var lastR = rect(vertices[n-1]);
-  path += " L " + lastR.x + "," + lastR.y;//pathTo(vertices[0], vertices[n-1]); //WHYYYYYYY
+  var lastP = vertices[n-1];
+  var lastR = rect(lastP);
+  path += pathTo(vertices[0], vertices[n-1]); //WHYYYYYYY
   return path;
 }
 
@@ -173,7 +182,7 @@ function posify(pathString, xpos, ypos) {
   var segments = pathString.split(" ");
   var ret_string = segments[0]; //M
   var type = "x";
-  for (var i=1; i<(segments.length-1); i++) {
+  for (var i=1; i<(segments.length); i++) {
     var seg = segments[i];
     if (type == "x") {
       if (seg == "Q" || seg == "L" || seg == "C" || seg == "Z" || seg == "z") {
@@ -205,7 +214,7 @@ function translate(pathString, xpos, ypos) {
   var ydiff = ypos - old_ypos;
   
   var type = "x";
-  for (var i=1; i<(segments.length-1); i++) {
+  for (var i=1; i<(segments.length); i++) {
     var seg = segments[i];
     if (type == "x") {
       if (seg == "Q" || seg == "L" || seg == "C" || seg == "Z" || seg == "z") {
@@ -259,13 +268,13 @@ var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
 var numberOfQuestionsPerTrial = 6;
-var shapes = [[polygon(15), polygon(15)],
+var shapes = [[polygon(9), polygon(9)],
+              [polygon(12), polygon(12)],
               [polygon(15), polygon(15)],
-              [polygon(15), polygon(15)],
-              [polygon(15), polygon(15)],
-              [polygon(15), polygon(15)],
-              [polygon(15), polygon(15)],
-              [polygon(15), polygon(15)]];
+              [polygon(18), polygon(18)],
+              [polygon(21), polygon(21)],
+              [polygon(24), polygon(24)],
+              [polygon(27), polygon(27)]];
 var adjectives = ["furby", "dibty", "halmy", "wiggy", "grondy", "alby", "hartny"];
 var nouns = ["wug", "sarma", "bejeeba", "twan", "pimwit", "barnda", "slubja"];
 var colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF","#FFCC99"];
@@ -394,10 +403,10 @@ experiment = {
 		    if (idx == q1ex1idx) {
 			q1ex1posInOSS = posInOSS;
 		    }
+		    console.log('left: ' + trialparameters.leftShape);
+		    console.log('right: ' + trialparameters.rightShape);
 		    var inter = intermediate(trialparameters.leftShape, trialparameters.rightShape, morphProp);
-		    console.log(inter);
 		    var tmpPath = posify(inter, xpos, ypos); //toPathString(morphBetween(trialparameters.leftShape, trialparameters.rightShape, morphProp), xpos, ypos);
-		    console.log(tmpPath);
 		    var tmpObj = paper.path(tmpPath);
 		    onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
 		    posInOSS++;
@@ -522,7 +531,8 @@ experiment = {
 			    $("#bottomtext").html("");
 			}, 1000);
 			setTimeout(function() {
-			    var q1text = "<p>Do you think that the " + trialparameters.noun + " on the " + q1comparisondirxn + " is more " + trialparameters.adjective + " than the one on the " + q1otherdirxn + "?</p>";
+			    var q1text = "<p>Click on the " + trialparameters.noun + " that is the most " + trialparameters.adjective + ".</p>";
+			    //var q1text = "<p>Do you think that the " + trialparameters.noun + " on the " + q1comparisondirxn + " is more " + trialparameters.adjective + " than the one on the " + q1otherdirxn + "?</p>";
 			    $("#bottomtext").html(q1text);
 			    $(".response").show();
 			    $("#error").hide();
