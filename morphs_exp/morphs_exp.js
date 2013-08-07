@@ -358,6 +358,7 @@ var experiment = {
       $("#stage #bottomtext").hide();
       $("#nexttrial").hide(); 
       $(".canvas").hide();
+      $("#error").hide();
       papername = "canvas" + trialnum;
       $("#stage #" + papername).show();
       var paper = Raphael(papername, canvasWidth, canvasHeight);
@@ -553,9 +554,13 @@ var experiment = {
         if (autoRespond) {
           qresponseRaw = "agreement=yes";
         }
+        if (qresponseRaw.length < 12) {
+				  $("#error").show();
+			  } else {
           $("#continue").unbind("click");
           $("#continue").hide();
           $("#bottomtext").hide();
+          $("#error").hide();
           $(".response").hide();
           endTime = (new Date()).getTime(); 
           rtindex = "q" + qnumber + "rt";
@@ -580,6 +585,7 @@ var experiment = {
               experiment.nextquestion(qnumber + 1, trialnum, trialpara, paper, examplesseen, shapesonscreen);
             }, 1);
           }
+        }
       });
     }, 1000);
   } 
