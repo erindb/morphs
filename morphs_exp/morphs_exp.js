@@ -4,6 +4,7 @@ function lowSkew(a, b) { return (((1/uniform(1,10))*(b-a)) + a); }
 function highSkew(a, b) { return (((1 - lowSkew(0,1))*(b-a)) + a); }
 function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i; j = parseInt(Math.random() * i), x = newarray[--i], newarray[i] = newarray[j], newarray[j] = x);return newarray;} // non-destructive.
 function bernoulli(p) { var p = p || 0.5; if (Math.random() > p) {return true;} else {return false;} }
+function showSlide(id) { $(".slide").hide(); $("#"+id).show(); }
 
 // creates an image partway between two other images, as in the animations
 // by Raphael.js
@@ -183,15 +184,15 @@ var topMargin = 75;
 var edgetype = "t"; // "t" for curves, "l" for sharp edges & straight lines.
 
 // Global stuff.
-var numberOfQuestionsPerTrial = 6;
+var numberOfQuestionsPerTrial = 2;//6;
 //**************should add in some recording of what these shapes are!!!!!
-var shapes = [[polygon(9), polygon(9)],
+var shapes = [[polygon(9), polygon(9)]]; /*,
               [polygon(12), polygon(12)],
               [polygon(15), polygon(15)],
               [polygon(18), polygon(18)],
               [polygon(21), polygon(21)],
               [polygon(24), polygon(24)],
-              [polygon(6), polygon(6)]];
+              [polygon(6), polygon(6)]]; */
 var adjectives = ["furby", "dibty", "halmy", "wiggy", "grondy", "alby", "hartny"];
 var nouns = ["wug", "sarma", "bejeeba", "twan", "pimwit", "barnda", "slubja"];
 var colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF","#FFCC99"];
@@ -227,35 +228,36 @@ experiment = {
 	  showSlide("stage");
 	  experiment.next(0);
   },
+  end: function () {
+    showSlide("language");
+    $("#lgerror").hide();
+    $("#lgsubmit").click(function(){
+	  lang = $("#lgform").serialize();
+      if (lang.length > 5) {
+          lang = lang.slice(3,lang.length);
+          experiment.data["language"] = lang;
+          showSlide("finished");
+          setTimeout(function() { turk.submit(experiment.data) }, 1000);
+      }
+    });
+  },
   next: function (trialnum) {
-    var displayPracticeQuestion = function() {
-      var q1text = "<p>Click on the " + trialparameters.noun +
-                   " that is the most " + trialparameters.adjective + ".</p>";
-      //var q1text = "<p>Do you think that the " + trialparameters.noun +
-      //" on the " + q1comparisondirxn + " is more " + trialparameters.adjective +
-      //" than the one on the " + q1otherdirxn + "?</p>";
-      $("#bottomtext").html(q1text);
-      $(".response").show();
-      $("#error").hide();
-      $(".moveon").hide();
-      $("#continue").show();
-      $(".agreement").prop('checked', false);
-      $(".rating").prop('checked', false);
-      startTime = (new Date()).getTime();
-    }
-	  if (trialnum == shapes.length) {
-	    showSlide("language");
-	    $("#lgerror").hide();
-	    $("#lgsubmit").click(function(){
-		  lang = $("#lgform").serialize();
-	      if (lang.length > 5) {
-	          lang = lang.slice(3,lang.length);
-	          experiment.data["language"] = lang;
-	          showSlide("finished");
-	          setTimeout(function() { turk.submit(experiment.data) }, 1000);
-	      }
-      });
-	  } else { 
+	  if (trialnum == shapes.length) {experiment.end();} else { 
+      var displayPracticeQuestion = function() {
+        var q1text = "<p>Click on the " + trialparameters.noun +
+                     " that is the most " + trialparameters.adjective + ".</p>";
+        //var q1text = "<p>Do you think that the " + trialparameters.noun +
+        //" on the " + q1comparisondirxn + " is more " + trialparameters.adjective +
+        //" than the one on the " + q1otherdirxn + "?</p>";
+        $("#bottomtext").html(q1text);
+        $(".response").show();
+        $("#error").hide();
+        $(".moveon").hide();
+        $("#continue").show();
+        $(".agreement").prop('checked', false);
+        $(".rating").prop('checked', false);
+        startTime = (new Date()).getTime();
+      };
 	    $(".feedback").hide();
 	    $("#stage .moveon").hide();
 	    $("#stage .response").hide();
@@ -265,31 +267,7 @@ experiment = {
 	    papername = "canvas" + trialnum;
 	    $("#stage #" + papername).show();
 	    var paper = Raphael(papername, canvasWidth, canvasHeight);
-	    var onScreenShapes = [];
-	    var rightShapeIndex = [0,1].random();
-	    var leftShapeIndex;
-	    if (rightShapeIndex == 0) {
-		    leftShapeIndex = 1;
-	    } else {
-		    leftShapeIndex = 0;
-	    }
-	    var trialorientation = mytrialdistributions[trialnum][1];
-	    var distWithOrientation;
-	    if (trialorientation == "left") {
-		    distWithOrientation = mytrialdistributions[trialnum][0].reverse();
-	    } else {
-		    distWithOrientation = mytrialdistributions[trialnum][0];
-	    }
-	    var trialparameters = {
-		    trialnumber: trialnum,
-		    adjective: myTrialAdjectives[trialnum],
-		    noun: myTrialNouns[trialnum],
-		    leftShape: myTrialShapes[trialnum][leftShapeIndex],
-		    rightShape: myTrialShapes[trialnum][rightShapeIndex],
-		    color: myTrialColors[trialnum],
-		    distribution: distWithOrientation,
-		    orientation: trialorientation
-	    };
+	    var trialparameters = getTrialParameters(trialnum);
  	    var newtext;
 	    if (trialnum == 0) { 
 		    newtext = "<p>One kind of alien artifact are called <b>" + trialparameters.noun + "s</b>.</p>"
@@ -302,60 +280,9 @@ experiment = {
 	                "s. When you're ready, click the 'Continue' button below.</p>")
 	    $("#bottomtext").show();
 	    $("#bottomtext").html(newtext);
-	    var xpositions = [];
-	    var ypositions = [];
-	    for (hor = 0; hor < numColumns; hor++) {
-	    	xpositions.push(leftMargin + (hor/numColumns) * (canvasWidth - rightMargin));
-	    }
-	    for (ver = 0; ver < numRows; ver++) {
-	      ypositions.push(topMargin + canvasHeight*3/5 * (ver/numRows));
-	    }
-	    var indicesbut0and26 = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-	                                    14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-	                                    25]);
-	    var fst = shuffle([0,26]);
-	    var indices = indicesbut0and26.slice(0, numColumns); 
-	    // index 9 = the shape at the left of the middle row will be either index 0
-	    //or index 26 of the distribution.
-	    indices.push(fst.shift());
-	    indices = indices.concat(indicesbut0and26.slice(numColumns, numColumns*2-2));
-	    // ibid for index 17 = the shape at the right of the middle row.
-	    indices.push(fst.shift());
-	    indices = indices.concat(indicesbut0and26.slice(numColumns*2-2, indicesbut0and26.length));
-	    var q1ex0posInOSS, q1ex1posInOSS;
-	    paper.setStart();
-	    var q1ex0idx = [1,2,3].random();
-	    var q1ex1idx = [numColumns * numRows - 2, numColumns * numRows - 3, numColumns * numRows - 4].random();
-	    var posInOSS = 0;
-	    for (ver = 0; ver < numRows; ver++) { 
-		    var ypos = ypositions[ver];
-		    for (hor = 0; hor < numColumns; hor++) {
-		      var xpos = xpositions[hor];
-		      var idx = indices.shift();
-		      var morphProp = trialparameters.distribution[idx];
-		      if (posInOSS == 9) {
-			      ex0pos = [xpos, ypos];
-		      }
-		      if (posInOSS == 17) {
-			      ex1pos = [xpos, ypos];
-		      }
-		      if (idx == q1ex0idx) {
-			      q1ex0posInOSS = posInOSS;
-		      }
-		      if (idx == q1ex1idx) {
-			      q1ex1posInOSS = posInOSS;
-		      }
-		      var inter = intermediate(trialparameters.leftShape,
-		                               trialparameters.rightShape, morphProp);
-		      //change path so the shape is located at point xpos, ypos
-		      var tmpPath = posify(inter, xpos, ypos);
-		      var tmpObj = paper.path(tmpPath);
-		      onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
-		      posInOSS++;
-		    }
-	    }
-	    var st = paper.setFinish();
-	    st.attr({stroke: '#000', 'stroke-width': 1, fill: trialparameters.color});
+	    var displayShapesInfo = displayShapes(paper, trialparameters);
+	    var onScreenShapes = displayShapesInfo.oss;
+	    var q1examples = displayShapesInfo.ex; 
 	    $("#introbutton").show();
 	    $("#introbutton").click(function() {
         // animation giving subjects information about the array of shapes
@@ -414,7 +341,6 @@ experiment = {
 			      leastTag.animate({x:ltpos[0], y:ltpos[1]}, 1000, ">");
             // first test question begins here.
 			      $("#introbutton").hide();
-			      var q1examples = [onScreenShapes[q1ex0posInOSS], onScreenShapes[q1ex1posInOSS]]; 
 			      var q1more, q1less, q1correctanswer, q1otherdirxn;
 			      var q1comparisondirxn = ["left", "right"].random();
 			      if (q1comparisondirxn == "left") {
@@ -615,11 +541,6 @@ function subtract (array1, array2) {
     return newarray;
 }
 
-function showSlide(id) {
-	$(".slide").hide();
-	$("#"+id).show();
-}
-
 function cloneObject(oldObject) {
     var newObject = jQuery.extend(true, {}, oldObject);
     return newObject;
@@ -640,4 +561,98 @@ Array.prototype.cloneArray = function() { return this.slice(0); }
 
 function name(obj) {
     return "ADD NAME";
+}
+
+
+
+
+
+
+
+function displayShapes(paper, trialparameters) {
+  var onScreenShapes = [];
+  var xpositions = [];
+  var ypositions = [];
+  for (hor = 0; hor < numColumns; hor++) {
+  	xpositions.push(leftMargin + (hor/numColumns) * (canvasWidth - rightMargin));
+  }
+  for (ver = 0; ver < numRows; ver++) {
+    ypositions.push(topMargin + canvasHeight*3/5 * (ver/numRows));
+  }
+  var indicesbut0and26 = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                                  14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+                                  25]);
+  var fst = shuffle([0,26]);
+  var indices = indicesbut0and26.slice(0, numColumns); 
+  // index 9 = the shape at the left of the middle row will be either index 0
+  //or index 26 of the distribution.
+  indices.push(fst.shift());
+  indices = indices.concat(indicesbut0and26.slice(numColumns, numColumns*2-2));
+  // ibid for index 17 = the shape at the right of the middle row.
+  indices.push(fst.shift());
+  indices = indices.concat(indicesbut0and26.slice(numColumns*2-2, indicesbut0and26.length));
+  var q1ex0posInOSS, q1ex1posInOSS;
+  paper.setStart();
+  var q1ex0idx = [1,2,3].random();
+  var q1ex1idx = [numColumns * numRows - 2, numColumns * numRows - 3, numColumns * numRows - 4].random();
+  var posInOSS = 0;
+  for (ver = 0; ver < numRows; ver++) { 
+    var ypos = ypositions[ver];
+    for (hor = 0; hor < numColumns; hor++) {
+      var xpos = xpositions[hor];
+      var idx = indices.shift();
+      var morphProp = trialparameters.distribution[idx];
+      if (posInOSS == 9) {
+	      ex0pos = [xpos, ypos];
+      }
+      if (posInOSS == 17) {
+	      ex1pos = [xpos, ypos];
+      }
+      if (idx == q1ex0idx) {
+	      q1ex0posInOSS = posInOSS;
+      }
+      if (idx == q1ex1idx) {
+	      q1ex1posInOSS = posInOSS;
+      }
+      var inter = intermediate(trialparameters.leftShape,
+                               trialparameters.rightShape, morphProp);
+      //change path so the shape is located at point xpos, ypos
+      var tmpPath = posify(inter, xpos, ypos);
+      var tmpObj = paper.path(tmpPath);
+      onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
+      posInOSS++;
+    }
+  }
+  var st = paper.setFinish();
+  st.attr({stroke: '#000', 'stroke-width': 1, fill: trialparameters.color});
+  var q1examples = [onScreenShapes[q1ex0posInOSS], onScreenShapes[q1ex1posInOSS]]; 
+  return {oss: onScreenShapes, ex: q1examples};
+}
+
+function getTrialParameters(trialnum) {
+  var rightShapeIndex = [0,1].random();
+  var leftShapeIndex;
+  if (rightShapeIndex == 0) {
+    leftShapeIndex = 1;
+  } else {
+    leftShapeIndex = 0;
+  }
+  var trialorientation = mytrialdistributions[trialnum][1];
+  var distWithOrientation;
+  if (trialorientation == "left") {
+    distWithOrientation = mytrialdistributions[trialnum][0].reverse();
+  } else {
+    distWithOrientation = mytrialdistributions[trialnum][0];
+  }
+  var trialparameters = {
+    trialnumber: trialnum,
+    adjective: myTrialAdjectives[trialnum],
+    noun: myTrialNouns[trialnum],
+    leftShape: myTrialShapes[trialnum][leftShapeIndex],
+    rightShape: myTrialShapes[trialnum][rightShapeIndex],
+    color: myTrialColors[trialnum],
+    distribution: distWithOrientation,
+    orientation: trialorientation
+  };
+  return trialparameters;
 }
