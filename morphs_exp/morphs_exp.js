@@ -6,6 +6,12 @@ function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i
 function bernoulli(p) { var p = p || 0.5; if (Math.random() > p) {return true;} else {return false;} }
 function showSlide(id) { $(".slide").hide(); $("#"+id).show(); }
 
+function attrify(p) {
+  return {path: p.attr().path.toString(),
+          fill:p.attr().fill,
+          "stroke-width":p.attr()["stroke-width"]}
+}
+
 // creates an image partway between two other images, as in the animations
 // by Raphael.js
 function intermediate(from, to, pos) {
@@ -39,9 +45,8 @@ polygon
 - n (integer) number of vertices for the polygon
 \*/
 function polygon(n) {
-  var size = {x: 300, y: 300};
-  var center = {x: size.x/2, y: size.y/2};
-  var maxRadius = Math.min(center.x, center.y);
+  var center = {x: 200, y: 200};
+  var maxRadius = Math.min(150, 150);
   var minRadius = maxRadius*0.2;
   var FULLCIRCLE = 2*Math.PI;
   function rect(p) {
@@ -250,6 +255,7 @@ var experiment = {
         $(".response").hide();
         $("#error").hide();
         $(".moveon").hide();
+        $("#simple-slider").hide();
         $("#continue").hide();
         $(".agreement").prop('checked', false);
       }
@@ -356,7 +362,8 @@ var experiment = {
       $("#stage .moveon").hide();
       $("#stage .response").hide();
       $("#stage #bottomtext").hide();
-      $("#nexttrial").hide(); 
+      $("#nexttrial").hide();
+      $("#simple-slider").hide();
       $(".canvas").hide();
       $("#error").hide();
       papername = "canvas" + trialnum;
@@ -501,8 +508,11 @@ var experiment = {
                   $("#bottomtext").hide();
                   $("#wronganswer").hide();
                   $("#correctanswer").hide();
+                  var interactivePaperName = papername + "slider";
+                  var interactivePaper = Raphael(interactivePaperName, 400, 400);
                   experiment.nextquestion(2, trialnum, trialparameters, paper,
-                                          q1examples, onScreenShapes);
+                                          q1examples, onScreenShapes,
+                                          interactivePaper, interactivePaperName);
                 });
               };
             }
@@ -514,7 +524,8 @@ var experiment = {
     }
   }, // end of experiment.next()
 
-  nextquestion: function (qnumber, trialnum, trialpara, paper, examplesseen, shapesonscreen) {
+  nextquestion: function (qnumber, trialnum, trialpara, paper, examplesseen,
+                          shapesonscreen, interactivePaper, interactivePaperName) {
     var candidateexamples = shapesonscreen.cloneArray();
     if (qnumber <= 3) { 
       // q1 is the comparison; <= 3 so that subjects see two pos-form questions with examples close to the edges.
@@ -535,54 +546,65 @@ var experiment = {
     } else {
       article = "a";
     }
-    var qtext = "<p>Do you think that this is " + article + " " + trialpara.adjective + " " + trialpara.noun + "?</p>";
+    var qtext = "<p>John, an expert on " + trialpara.noun + "s, tells you that " +
+                trialpara.noun + " number " + 232 + " is " + trialpara.adjective +
+                ".</p><p>Using the slider, please indicate what you think " +
+                trialpara.noun + " number " + 232 + " looks like.</p>";
+    var firstPath = intermediate(trialpara.leftShape, trialpara.rightShape, 0.5);
+    $("#stage #" + papername).hide();
+    $("#stage #" + interactivePaperName).show();
+    var currentShape = interactivePaper.path(firstPath);
+    currentShape.attr({fill: trialpara.color, "stroke-width":2});
     $("#bottomtext").html(qtext);
     $("#bottomtext").show();
-    var qtestpath = qtestExample[1];
-    var qmatchtest = qtestpath.split(' ');
-    qnewPathtest = translate(qtestpath, (canvasWidth/2), (canvasHeight*4/5));
-    qtestExample[0].animate({path: qnewPathtest}, 1000, ">");
+    $("#simple-slider").show();
+    var needResponse = true;
+    var response = null;
+    var sliderCase = document.getElementById("sliderCase");
+    sliderCase.innerHTML = '<div id="simple-slider" class="dragdealer"><div class="red-bar handle">drag me</div></div>';
+    var slider = new Dragdealer("simple-slider", {
+      x: 0.5,
+      animationCallback: function(x) {
+        var currentPath = intermediate(trialpara.leftShape, trialpara.rightShape, x);
+        currentShape.attr({path: currentPath});
+        needResponse = false;
+        response = x;
+      }
+    });
     setTimeout(function() {
       startTime = (new Date()).getTime();
-      $(".response").show();
-      $(".agreement").prop('checked', false);
       $("#error").hide();
       $("#continue").show();
       trialpara["q" + qnumber + "testlocation"] = qtestExample[2];
       $("#continue").click(function() {
-        var qresponseRaw = $("#form").serialize();
-        if (autoRespond) {
-          qresponseRaw = "agreement=yes";
-        }
-        if (qresponseRaw.length < 12) {
+        if (needResponse) {
 				  $("#error").show();
 			  } else {
           $("#continue").unbind("click");
           $("#continue").hide();
           $("#bottomtext").hide();
           $("#error").hide();
-          $(".response").hide();
+          $("#simple-slider").hide();
+          interactivePaper.clear();
           endTime = (new Date()).getTime(); 
           rtindex = "q" + qnumber + "rt";
           trialpara[rtindex] = endTime - startTime;
-          var qparsed = qresponseRaw.split("&");
-          var qagreement = qparsed[0].split("=");
           qresponseindex = "q" + qnumber + "response";
-          trialpara[qresponseindex] = qagreement[1];
+          trialpara[qresponseindex] = response;
           if (qnumber == numberOfQuestionsPerTrial) {
             setTimeout(function () {
-                paper.clear();
-                trialpara.shapes =  "L" + name(trialpara.leftShape) + "R" + name(trialpara.rightShape);
-                delete trialpara.leftShape;
-                delete trialpara.rightShape;
-                trialpara.distribution = name(trialpara.distribution);
-                experiment.data["trial" + trialnum + "data"] = cloneObject(trialpara);
-                experiment.next(trialnum + 1);
-              }, 1000); 
+              trialpara.shapes =  "L" + name(trialpara.leftShape) + "R" + name(trialpara.rightShape);
+              delete trialpara.leftShape;
+              delete trialpara.rightShape;
+              trialpara.distribution = name(trialpara.distribution);
+              experiment.data["trial" + trialnum + "data"] = cloneObject(trialpara);
+              experiment.next(trialnum + 1);
+            }, 1000); 
           } else {
-            qtestExample[0].animate({path: qtestpath}, 1000, ">");
             setTimeout(function() {
-              experiment.nextquestion(qnumber + 1, trialnum, trialpara, paper, examplesseen, shapesonscreen);
+              experiment.nextquestion(qnumber + 1, trialnum, trialpara, paper,
+                                      examplesseen, shapesonscreen,
+                                      interactivePaper, interactivePaperName);
             }, 1);
           }
         }
