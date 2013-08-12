@@ -179,6 +179,24 @@ var experiment = { data: {"classificationWarmup":{}, "comparison":{}},
                      }
                    },
                    compare: function(stage, onScreenObjects, qNumber, mostTag, leastTag) {
+                     function clickArtifact(clickedObj, otherObj, correctness) {
+                       if (correctness == "correct") {
+                         var feedback = "That's correct!";
+                       } else if (correctness == "incorrect") {
+                         var feedback = "Sorry, that's not correct. The more " +
+                                        "feppy one is on the " + moreSide;
+                       } else {
+                         console.log("ERROR: unrecognized value for correct: " + correct);
+                       }
+                       $("#compareText").html(feedback);
+                       setTimeout(function() {
+                         clickedObj.obj.animate({path:clickedObj.path}, 1000);
+                         otherObj.compareObj.animate({path:otherObj.path}, 1000);
+                         setTimeout(function() {
+                           experiment.compare('comparison', onScreenObjects, 0);
+                         }, 1000);
+                       }, 1000);
+                     }
 	                   $('.bar').css('width', ( (100*(qNumber/totQns) + "%")));
                      var sep = 80;
                      var xCenter = 600;
@@ -278,29 +296,8 @@ var experiment = { data: {"classificationWarmup":{}, "comparison":{}},
                        more.obj.animate({path: newMorePath}, 1000);
                        $("#adjectiveIntro").html("<br/>");
                        $("#compareMoveon").hide();
-                       more.obj.click(function() {
-                         var feedback = "That's correct!";
-                         $("#compareText").html(feedback);
-                         setTimeout(function() {
-                           less.obj.animate({path:less.path}, 1000);
-                           more.obj.animate({path:more.path}, 1000);
-                           setTimeout(function() {
-                             experiment.compare('comparison', onScreenObjects, 0);
-                           }, 1000);
-                         }, 1000);
-                       });
-                       less.obj.click(function() {
-                         var feedback = "Sorry, that's not correct. The more " +
-                                        "feppy one is on the " + moreSide;
-                         $("#compareText").html(feedback);
-                         setTimeout(function() {
-                           less.obj.animate({path:less.path}, 1000);
-                           more.obj.animate({path:more.path}, 1000);
-                           setTimeout(function() {
-                             experiment.compare('comparison', onScreenObjects, 0);
-                           }, 1000);
-                         }, 1000);
-                       });
+                       more.obj.click(function() {clickArtifact(more, less, "correct")});
+                       less.obj.click(function() {clickArtifact(less, more, "incorrect")});
                      } else if (stage == 'comparison') {
                        var clickText = "Click on the artifact that is the most " +
                                        adjectives[0] + ".";
@@ -339,11 +336,10 @@ var experiment = { data: {"classificationWarmup":{}, "comparison":{}},
                        first.obj.click(function() {
                          if (first.prop > second.prop) {
                            experiment.data["comparison"][firstIndex + "," + secondIndex] = "correct";
-                           var feedback = "That's correct!";
+                           clickArtifact(first, second, "correct");
                          } else {
                            experiment.data["comparison"][firstIndex + "," + secondIndex] = "incorrect";
-                           var feedback = "Sorry, that's not correct. The more " +
-                                          "feppy one is on the " + moreSide;
+                           clickArtifact(second, first, "incorrect");
                          }
                          $("#compareText").html(feedback);
                          setTimeout( function() {
