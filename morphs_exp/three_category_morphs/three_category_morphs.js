@@ -1,4 +1,84 @@
+// creates an image partway between two other images, as in the animations
+// by Raphael.js
+function intermediate(from, to, pos) {
+  var fromCurve = Raphael.path2curve(from);
+  var toCurve = Raphael.path2curve(to);
+  var diff = [];
+  var attr = "path";
+  //compute difference between paths and store in diff
+  for (i = 0, ii = fromCurve.length; i < ii; i++) {
+    diff[i] = [0];
+    for (var j = 1, jj = fromCurve[i].length; j < jj; j++) {
+      diff[i][j] = (toCurve[i][j] - fromCurve[i][j]);
+    }
+  }
+  var S = " ";
+  now = [];
+  //compute new path string for intermediate image
+  for (var i = 0, ii = fromCurve.length; i < ii; i++) {
+    now[i] = [fromCurve[i][0]];
+    for (var j = 1, jj = fromCurve[i].length; j < jj; j++) {
+      now[i][j] = +fromCurve[i][j] + pos * diff[i][j];
+    }
+    now[i] = now[i].join(S);
+  }
+  return now.join(S);
+}
+
+function uniformAroundMean(mean, radius) {
+  var radius = radius || 0.2;
+  if (mean + radius < 1) {
+    var upper = mean + radius;
+  } else {
+    var upper = 1;
+  }
+  if (mean - radius > .1) {
+    var lower = mean - radius;
+  } else {
+    var lower = .1;
+  }
+  var interval = upper - lower;
+  return Math.random() * interval + lower;
+}
+
+function myColor(meanColor, hVar, sVar, vVar) {
+  var hVar = hVar || 0.01;
+  var sVar = sVar || 0.1;
+  var vVar = vVar || 0.1;
+  var c = Raphael.color(meanColor);
+  var hue = uniformAroundMean(c.h, hVar);
+  var saturation = uniformAroundMean(c.s, sVar);
+  var value = uniformAroundMean(c.v, vVar);
+  var newColor = Raphael.hsb2rgb(hue, saturation, value);
+  return newColor.hex;
+}
+
+function posify(pathString, xpos, ypos) {
+  var segments = pathString.split(" ");
+  var ret_string = segments[0]; //M
+  var type = "x";
+  for (var i=1; i<(segments.length); i++) {
+    var seg = segments[i];
+    if (type == "x") {
+      if (seg == "Q" || seg == "L" || seg == "C" || seg == "Z" || seg == "z") {
+        ret_string += (" " + seg);
+        type = "x"
+      } else {
+        var x = (((parseFloat(seg)-150)*0.2)+xpos).toString();
+        ret_string += (" " + x);
+        type = "y";
+      }
+    } else if (type == "y") {
+      var y = (((parseFloat(seg)-150)*0.2)+ypos).toString();
+        ret_string += (" " + y);
+      type = "x";
+    }
+  }
+  return ret_string;
+}
+
 function showSlide(id) { $(".slide").hide(); $("#"+id).show(); }
+function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i; j = parseInt(Math.random() * i), x = newarray[--i], newarray[i] = newarray[j], newarray[j] = x);return newarray;} // non-destructive.
 
 //distributions
 var peakedDown = [ 0.1503, 0.808, 0.008998, 0.1865, 0.6968,
@@ -22,17 +102,29 @@ var colors = ["red", "blue", "green"];
 var adjectives = ["feppy"];
 var distributions = [peakedDown, peakedMid, peakedUp];
 
-var nForceChoicePractice = 3;
+var nComparison = 3;
 var nArtifacts = 3;
 var nClassifications = 9;
+var toClassify = [];
+for (var i=0; i<nClassifications; i++) {
+  toClassify.push(i/(nClassifications - 1));
+}
+var compareQns = nComparison * nArtifacts;
+var classifyQns = nClassifications;
+var totQns = (nArtifacts * nComparison) + nClassifications + 9 + 1;
 
 $(document).ready(function() {
-    //$(".canvas").attr({width: canvasWidth, height: canvasHeight});
-    showSlide("consent");
-    $("#mustaccept").hide();
+  experiment.classify("start");
+  //showSlide("consent");
+  //$("#mustaccept").hide();
 });
 
-var experiment = { instructions: function() {
+var experiment = { data: {"classificationWarmup":{}},
+                   least: shapePairs[0].cloud,
+                   most: shapePairs[0].spikey,
+                   toClassify: shuffle(toClassify),
+
+                   instructions: function() {
                      if (turk.previewMode) {
                          $("#instructions #mustaccept").show();
                      } else {
@@ -40,6 +132,7 @@ var experiment = { instructions: function() {
                      }
                    },
                    artifact: function(artifactIndex, stage, qNumber) {
+	                   $('.bar').css('width', ( (100*(artifactIndex*nComparison + qNumber)/totQns) + "%"));
                      if (stage == 'start') {
                        //draw all the wugs (or tigs or bonks)
                        if (artifactIndex == 0) {
@@ -65,7 +158,7 @@ var experiment = { instructions: function() {
                        //practice with feppiness scale
                        $("#artifactMoveon").click(function() {
                          $("#artifactMoveon").unbind("click");
-                         if (qNumber + 1 < nForceChoicePractice) {
+                         if (qNumber + 1 < nComparison) {
                            experiment.artifact(artifactIndex, 'comparison',
                                                qNumber + 1);
                          } else if (artifactIndex + 1 < nArtifacts) {
@@ -79,8 +172,14 @@ var experiment = { instructions: function() {
                                    '"stage" in function artifact');
                      }
                    },
-                   classify: function (stage, qNumber) {
+                   classify: function (stage, qNumber, classifyPaper) {
                      if (stage == 'start') {
+	                   $('.bar').css('width', ( (100*(compareQns)/totQns) + "%"));
+                       var allIndices = [];
+                       for (var i=0; i<20; i++) {allIndices.push(i);}
+                       for (var i=0; i<nouns.length; i++) {
+                         displayShapes(i, allIndices);
+                       }
                        showSlide("classify");
                        $("#classifyError").hide();
                        $("#classification").hide();
@@ -97,13 +196,20 @@ var experiment = { instructions: function() {
                        $("#classifyText").html(classifyText);
                        $("#classifyMoveon").click(function() {
                          $("#classifyMoveon").unbind("click");
-                         experiment.classify('question', 0);
+                         var classifyPaper = Raphael("classifyShape",100,100);
+                         experiment.classify('question', 0, classifyPaper);
                        });
                      } else if (stage == 'question') {
+	                     $('.bar').css('width', ( (100*(compareQns + qNumber)/totQns) + "%"));
                        $("#classifyError").hide();
                        var selector = document.getElementById('choice');
                        selector.value = "";
                        //show a new shape
+                       var morphProp = experiment.toClassify[qNumber];
+                       var inter = intermediate(experiment.least, experiment.most, morphProp);
+                       var tmpPath = posify(inter, 50, 50);
+                       var tmpObj = classifyPaper.path(tmpPath);
+                       tmpObj.attr({fill: makeGradient("r", "#f8f8f8")});
                        $("#classifyText").hide();
                        $("#classification").show();
                        //what to put in the dropdown menu:
@@ -112,7 +218,7 @@ var experiment = { instructions: function() {
                        $("#noun2").html(nouns[2]);
                        //drop menu for which shape
                        $("#classifyMoveon").click(function() {
-                         var responseRaw = $("form").serialize();
+                         var responseRaw = $("#classification").serialize();
                          console.log(responseRaw);
   		                   if (responseRaw.length < 8) {
                            $("#classifyError").show();
@@ -120,14 +226,17 @@ var experiment = { instructions: function() {
                            $("#classifyMoveon").unbind("click");
 				                   //endTime = (new Date()).getTime(); 
 				                   //trialparameters.q1rt = endTime - startTime;
-				                   var response = responseRaw[0].split("=");
+				                   var response = responseRaw.split("=");
 				                   var choice = nouns[parseInt(response[1])];
+				                   experiment.data["classificationWarmup"][morphProp] = choice;
                            //Thanks!
                            $("#classification").show();
                            $("#classifyText").html("Thanks!");
                            $("#classifyText").show();
-                           if (qNumber < nClassifications) {
-                             experiment.classify('question', qNumber + 1);
+                           if (qNumber + 1 < nClassifications) {
+                             classifyPaper.clear();
+                             experiment.classify('question', qNumber + 1,
+                                                 classifyPaper);
                            } else {
                              experiment.target();
                            }
@@ -139,24 +248,164 @@ var experiment = { instructions: function() {
                      }
                    },
                    target: function() {
+	                   $('.bar').css('width', ( (100*(classifyQns+compareQns)/totQns) + "%"));
+                     $("#targetError").hide();
                      showSlide("target");
-                     for (var i=0; i < 8; i++) {
+                     //randomize target phrase order
+                     var targetPhrases = [];
+                     for (var i=0; i<nouns.length; i++) {
+                       targetPhrases.push(nouns[i]);
+                       targetPhrases.push(adjectives[0] + " " + nouns[i]);
+                       targetPhrases.push("very " + adjectives[0] + " " + 
+                                          nouns[i]);
+                     }
+                     
+                     //stupid for-loop closure bullshit (!!!!!)
+                     var shapes = [];
+                     var responses = {};
+                     var nResponses = 0;
+                     var firstPath = posify(intermediate(experiment.least,
+                                                         experiment.most, 0.5),
+                                            20, 50);
+                     for (var i=0; i<9; i++) {
+                       var paper = Raphael("canvas"+i, 60, 100);
+                       shapes.push(paper.path(firstPath));
+                     }
+                     function animCreator(index) {
+                       return function(x) {
+                         var currentPath = posify(intermediate(experiment.least, experiment.most, x), 20, 50);
+                         var shape = shapes[index];
+                         shape.attr({path: currentPath,
+                                     fill: makeGradient("r","#f8f8f8")});
+                       }
+                     }
+                     function callCreator(index) {
+                       return function(x) {
+                         if (responses[targetPhrases[index]] == null) {
+                           nResponses++;
+	                         $('.bar').css('width', ( (100*(compareQns + classifyQns + nResponses)/totQns) + "%"));
+                         }
+                         responses[targetPhrases[index]] = x;
+                       }
+                     }
+                     //end stupid for-loop closure bullshit (!!!!!)
+                     
+                     for (var i=0; i < 9; i++) {
+                       $("#targetText"+i).html("...what you think a <b>" + 
+                                               targetPhrases[i] +
+                                               "</b> would look like:");
                        var caseLabel = "sliderCase" + i;
                        var sliderLabel = "slider" + i;
-                       $("#"+caseLabel).html('<div id="'+sliderLabel+' class="dragdealer"><div class="red-bar handle">drag me</div></div>');
-                       var slider = new Dragdealer(sliderLabel);
+                       $("#"+caseLabel).html('<div id="'+sliderLabel+
+                                             '" class="dragdealer"><div class='+
+                                             '"red-bar handle"></div></div>');
+                       var slider = new Dragdealer(sliderLabel, {
+                         x: 0.5,
+                         animationCallback: animCreator(i),
+                         callback: callCreator(i)
+                       });
                      }
+                     
+                     $("#targetMoveon").click(function() {
+                       /*var nFail = 0;
+                       for (phrase in responses) {
+                         if (responses[phrase] == null) { nFail ++; }
+                       }*/
+                       if ( nResponses < 9 ) {
+                         $("#targetError").show();
+                       } else {
+                         $("#targetMoveon").unbind("click");
+                         experiment.data["targetQns"] = responses;
+                         for (phrase in responses) {
+                           console.log(phrase + " - " + responses[phrase]);
+                         }
+                         experiment.language();
+                       }
+                     });
+                   },
+                   language: function() {
+                    showSlide("language");
+                    $("#lgerror").hide();
+                    $("#lgsubmit").click(function(){
+                    lang = $("#lgform").serialize();
+                      if (lang.length > 5) {
+                          lang = lang.slice(3,lang.length);
+                          experiment.data["language"] = lang;
+                          showSlide("finished");
+                          setTimeout(function() { turk.submit(experiment.data) }, 1000);
+                      }
+                    });
                    }
                  };
-
-
 
 //nArtifacts should be = distributions.length
 //length of each distribution should be 20
 
 
+function displayShapes(nounIndex, allIndices) {
+  $("#n"+nounIndex).html(nouns[nounIndex] + "s");
+  var myIndices = shuffle(allIndices);
+  var nrows = 5;
+  var ncols = 4;
+  var space = 70;
+  var paper = Raphael("allArts"+nounIndex, (ncols*space), (nrows*space));
+  for (var row=0; row<nrows; row++) {
+    for (var col=0; col<ncols; col++) {
+      var index = myIndices[(row*ncols)+col];
+      var morphProp = distributions[nounIndex][index];//nounIndices[index]/(nounIndices.length-1);
+      var xpos = (col+0.5)*space;
+      var ypos = (row+0.5)*space;
+      var inter = intermediate(experiment.least, experiment.most, morphProp);
+      var tmpPath = posify(inter, xpos, ypos);
+      var tmpObj = paper.path(tmpPath);
+      tmpObj.attr({fill: makeGradient("r", myColor(colors[nounIndex], 0, 0.05, 0.5))});
+    }
+  }
+  //onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
+}
 
 
 
 
+
+  
+  function lighten(origColor, saturation) {
+    var saturation = saturation || false;
+    var eps = 0.1;
+    var c = Raphael.color(origColor);
+    if (c.v + eps < 1) {
+      var value = c.v + eps;
+    } else {
+      var value = 1;
+    }
+    if (saturation) {
+      var saturationEps = 0.1;
+      if (c.s - saturationEps > 0) {
+        var sat = c.s - saturationEps;
+      } else {
+        var sat = 0;
+      }
+    } else {sat = c.s;}
+    var newColor = Raphael.hsb2rgb(c.h, sat, value);
+    return newColor.hex;
+  }
+  
+  function darken(origColor) {
+    var eps = 0.1;
+    var c = Raphael.color(origColor);
+    if (c.v - eps < 1) {
+      var value = c.v - eps;
+    } else {
+      var value = 1;
+    }
+    var newColor = Raphael.hsb2rgb(c.h, c.s, value);
+    return newColor.hex;
+  }
+
+  function makeGradient(intro, origColor) {
+    var light = lighten(origColor);
+    var dark = darken(origColor);
+    var grad = intro + light + "-" + dark;
+    return grad;
+  }
 
