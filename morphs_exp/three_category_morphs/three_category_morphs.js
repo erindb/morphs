@@ -46,7 +46,12 @@ function myColor(meanColor, hVar, sVar, vVar) {
   var sVar = sVar || 0.1;
   var vVar = vVar || 0.1;
   var c = Raphael.color(meanColor);
-  var hue = uniformAroundMean(c.h, hVar);
+  if (c.h<0.1 || c.h>0.9) { hVar = hVar*0.6; }
+  var hMin = c.h - hVar;
+  var hMax = c.h + hVar;
+  if (hMin < 0) {hMin = 0;}
+  var hue = uniform(hMin, hMax);
+  if (hue >= 1) { hue = hue-1; }
   var saturation = uniformAroundMean(c.s, sVar);
   var value = uniformAroundMean(c.v, vVar);
   var newColor = Raphael.hsb2rgb(hue, saturation, value);
@@ -77,6 +82,7 @@ function posify(pathString, xpos, ypos) {
   return ret_string;
 }
 
+function uniform(a, b) { return ( (Math.random()*(b-a))+a ); }
 function showSlide(id) { $(".slide").hide(); $("#"+id).show(); }
 function shuffle(v) { newarray = v.slice(0);for(var j, x, i = newarray.length; i; j = parseInt(Math.random() * i), x = newarray[--i], newarray[i] = newarray[j], newarray[j] = x);return newarray;} // non-destructive.
 
@@ -98,9 +104,10 @@ var peakedUp = [ 0.5187, 0.696, 0.9059, 0.5085, 0.06499,
 var shapePairs = [ { cloud: "M 221.7571575320564,150 Q 235.33250039697197,183.56816372052631 178.66709439959914,176.68337715408177 Q 189.77066884863115,237.34425189457463 152.67669302195748,230.2622947355221 Q 106.18824144458648,263.08315106222085 87.34457613025721,214.28222693427597 Q 37.157650543250696,192.13597105007403 71.60876085378497,143.4415297870395 Q 69.50098674009855,101.76184621474493 130.13572530091528,119.31686876482323 Q 139.68495874592924,60.558577755087825 174.01994490949298,83.1415789427852 Q 238.04234639979444,88.07874811311186 221.7571575320564,150",
                      spikey: "M 227.1753318214803,150 Q 230.34329245027482,184.3396911320814 234.17184931397168,238.03432938679111 Q 176.1471395867638,223.02310266966794 145.67111361016336,207.3901616410368 Q 120.60272053801536,208.7539431935977 76.15756846740022,214.53454863270557 Q 70.15797594245315,176.3162788336788 56.02099517470542,142.32813486378728 Q 83.51403297621943,109.59015621330471 104.56308657027593,77.5248400718606 Q 136.0595742073103,58.977915925262366 181.11244904919704,31.15287588330574 Q 219.58206251754342,96.28873096172566 227.1753318214803,150"} ];
 var nouns = ["wug", "tig", "bonk"];
-var colors = ["red", "blue", "green"];
+var colors = ["ff0000", "0000ff", "#00ff00"];
 var adjectives = ["feppy"];
 var distributions = [peakedDown, peakedMid, peakedUp];
+var grey = "#e0e0e0";
 
 var nComparison = 3;
 var nArtifacts = 3;
@@ -114,7 +121,7 @@ var classifyQns = nClassifications;
 var totQns = (nArtifacts * nComparison) + nClassifications + 9 + 1;
 
 $(document).ready(function() {
-  experiment.classify("start");
+  experiment.compare(0, "start");
   //showSlide("consent");
   //$("#mustaccept").hide();
 });
@@ -131,7 +138,7 @@ var experiment = { data: {"classificationWarmup":{}},
                          showSlide("instructions");
                      }
                    },
-                   artifact: function(artifactIndex, stage, qNumber) {
+                   compare: function(artifactIndex, stage, qNumber) {
 	                   $('.bar').css('width', ( (100*(artifactIndex*nComparison + qNumber)/totQns) + "%"));
                      if (stage == 'start') {
                        //draw all the wugs (or tigs or bonks)
@@ -141,17 +148,17 @@ var experiment = { data: {"classificationWarmup":{}},
                          var firstWord = "Another";
                        };
                        $("#artifactText").html("pictures of 20 "+nouns[artifactIndex]+"s<br/>"+firstWord+" kind of alien artifact are called "+nouns[artifactIndex]+"s. Some of the "+nouns[artifactIndex]+"s are more "+adjectives[0]+" than others. Please take a moment to study these "+nouns[artifactIndex]+"s. When you're ready, click the 'Continue' button below.");
-                       showSlide("artifact");
+                       showSlide("compare");
                        $("#artifactMoveon").click(function() {
                          $("#artifactMoveon").unbind("click");
-                         experiment.artifact(artifactIndex, 'least-most');
+                         experiment.compare(artifactIndex, 'least-most');
                        });
                      } else if (stage == 'least-most') {
                        $("#artifactText").html("The "+nouns[artifactIndex]+" on the left is the most feppy "+nouns[artifactIndex]+" we know of and the "+nouns[artifactIndex]+" on the right is the least feppy one. Please take a look at these two objects and then click 'Continue' when you are ready to go on.");
                        //animation to show most and least feppy wugs
                        $("#artifactMoveon").click(function() {
                          $("#artifactMoveon").unbind("click");
-                         experiment.artifact(artifactIndex, 'comparison', 0);
+                         experiment.compare(artifactIndex, 'comparison', 0);
                        });
                      } else if (stage == 'comparison') {
                        $("#artifactText").html("Click on the "+nouns[artifactIndex]+" that is the most feppy.");
@@ -159,17 +166,17 @@ var experiment = { data: {"classificationWarmup":{}},
                        $("#artifactMoveon").click(function() {
                          $("#artifactMoveon").unbind("click");
                          if (qNumber + 1 < nComparison) {
-                           experiment.artifact(artifactIndex, 'comparison',
+                           experiment.compare(artifactIndex, 'comparison',
                                                qNumber + 1);
                          } else if (artifactIndex + 1 < nArtifacts) {
-                           experiment.artifact(artifactIndex + 1, 'start');
+                           experiment.compare(artifactIndex + 1, 'start');
                          } else {
                            experiment.classify('start');
                          }
                        });
                      } else {
                        console.log('ERROR unrecognized input for variable ' +
-                                   '"stage" in function artifact');
+                                   '"stage" in function compare: ' + stage);
                      }
                    },
                    classify: function (stage, qNumber, classifyPaper) {
@@ -209,7 +216,7 @@ var experiment = { data: {"classificationWarmup":{}},
                        var inter = intermediate(experiment.least, experiment.most, morphProp);
                        var tmpPath = posify(inter, 50, 50);
                        var tmpObj = classifyPaper.path(tmpPath);
-                       tmpObj.attr({fill: makeGradient("r", "#f8f8f8")});
+                       tmpObj.attr({fill: makeGradient("r", grey)});
                        $("#classifyText").hide();
                        $("#classification").show();
                        //what to put in the dropdown menu:
@@ -276,7 +283,7 @@ var experiment = { data: {"classificationWarmup":{}},
                          var currentPath = posify(intermediate(experiment.least, experiment.most, x), 20, 50);
                          var shape = shapes[index];
                          shape.attr({path: currentPath,
-                                     fill: makeGradient("r","#f8f8f8")});
+                                     fill: makeGradient("r",grey)});
                        }
                      }
                      function callCreator(index) {
@@ -324,6 +331,7 @@ var experiment = { data: {"classificationWarmup":{}},
                      });
                    },
                    language: function() {
+	                   $('.bar').css('width', ( "100%"));
                     showSlide("language");
                     $("#lgerror").hide();
                     $("#lgsubmit").click(function(){
@@ -358,7 +366,7 @@ function displayShapes(nounIndex, allIndices) {
       var inter = intermediate(experiment.least, experiment.most, morphProp);
       var tmpPath = posify(inter, xpos, ypos);
       var tmpObj = paper.path(tmpPath);
-      tmpObj.attr({fill: makeGradient("r", myColor(colors[nounIndex], 0, 0.05, 0.5))});
+      tmpObj.attr({fill: makeGradient("r", myColor(colors[nounIndex], 0.05, 0.1, 0.5))});
     }
   }
   //onScreenShapes.push([tmpObj,tmpPath,morphProp,posInOSS]);
@@ -404,8 +412,7 @@ function displayShapes(nounIndex, allIndices) {
 
   function makeGradient(intro, origColor) {
     var light = lighten(origColor);
-    var dark = darken(origColor);
-    var grad = intro + light + "-" + dark;
+    var grad = intro + light + "-" + origColor;
     return grad;
   }
 

@@ -57,11 +57,11 @@
     experiment should take about fifteen (15) minutes in total.</b></p>
     
     <p>Please click "Begin" when you're ready to start.</p>
-    <button type="button" id="begin" value="Begin" onclick="experiment.artifact(0, 'start')">
+    <button type="button" id="begin" value="Begin" onclick="experiment.compare(0, 'start')">
     Begin</button>
   </div>
 
-  <div class="slide" id="artifact">
+  <div class="slide" id="compare">
     <div id="artifactText">{{}}</div>
     <button type="button" id="artifactMoveon">Continue</button>
   </div>
@@ -135,8 +135,8 @@
   <div class="slide" id="language">
 	  <p>Last question: what is your native language (the language that
 	  was spoken at home when you were a child)?</p>
-    <p>Please enter it below, and then click 'Submit' (do NOT press the
-	  return key!). 
+    <p>Please enter it below, and then click 'Submit' <b>(do NOT press the
+	  return key!)</b>. 
     <form id="lgform">
     <input type="text" name="lg"></input>
     <button type="button" id="lgsubmit">Submit</button>
