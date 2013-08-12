@@ -1,0 +1,8 @@
+AFTER you show the slide and the container for the dragdealer, you need to
+initialize the dragdealer with:
+  var mySlider = new Dragdealer('my-slider');
+it WON'T WORK IF YOU DO IT BEFORE!!!
+
+you MUST COPY the contents of dragdealer.css into the style.css that you're
+using (or say that you're using dragdealer.css in some other way.......)
+otherwise nothing but the text will display.
