@@ -57,13 +57,16 @@
     experiment should take about fifteen (15) minutes in total.</b></p>
     
     <p>Please click "Begin" when you're ready to start.</p>
-    <button type="button" id="begin" value="Begin" onclick="experiment.compare(0, 'start')">
+    <button type="button" id="begin" value="Begin" onclick="experiment.compare('start')">
     Begin</button>
   </div>
 
   <div class="slide" id="compare">
-    <div id="artifactText">{{}}</div>
-    <button type="button" id="artifactMoveon">Continue</button>
+    <p id="artifactIntro">Here are the three kinds of alien artifacts that we know of.</p>
+    <div id="compareCanvas" class="canvas"></div>
+    <p id="compareText">{{}}</p>
+    <p id="adjectiveIntro"></p>
+    <button type="button" id="compareMoveon">Continue</button>
   </div>
 
   <div class="slide" id="classify">
