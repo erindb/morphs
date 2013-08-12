@@ -191,7 +191,7 @@ var experiment = { data: {"classificationWarmup":{}, "comparison":{}},
                        $("#compareText").html(feedback);
                        setTimeout(function() {
                          clickedObj.obj.animate({path:clickedObj.path}, 1000);
-                         otherObj.compareObj.animate({path:otherObj.path}, 1000);
+                         otherObj.obj.animate({path:otherObj.path}, 1000);
                          setTimeout(function() {
                            experiment.compare('comparison', onScreenObjects, 0);
                          }, 1000);
@@ -335,23 +335,18 @@ var experiment = { data: {"classificationWarmup":{}, "comparison":{}},
                        second.obj.animate({path: newSecondPath}, 1000);
                        first.obj.click(function() {
                          if (first.prop > second.prop) {
-                           experiment.data["comparison"][firstIndex + "," + secondIndex] = "correct";
-                           clickArtifact(first, second, "correct");
+                           var correctness = "correct";
                          } else {
-                           experiment.data["comparison"][firstIndex + "," + secondIndex] = "incorrect";
-                           clickArtifact(second, first, "incorrect");
+                           var correctness = "incorrect";
                          }
-                         $("#compareText").html(feedback);
+                         experiment.data["comparison"][firstIndex + "," + secondIndex] = correctness;
+                         clickArtifact(first, second, correctness);
                          setTimeout( function() {
-                           first.obj.animate({path: first.path}, 1000);
-                           second.obj.animate({path: second.path}, 1000);
-                           setTimeout( function() {
-                             if (qNumber + 1 < compareQns) {
-                               experiment.compare('comparison', onScreenObjects, qNumber + 1);
-                             } else {
-                               experiment.classify('start');
-                             }
-                           }, 1000);
+                         if (qNumber + 1 < compareQns) {
+                           experiment.compare('comparison', onScreenObjects, qNumber + 1);
+                         } else {
+                           experiment.classify('start');
+                         }
                          }, 1000);
                        });
                        second.obj.click(function() {
