@@ -178,7 +178,7 @@ var grey = "#e0e0e0";
 
 //as many compare as classify, should be roughly half easy half difficult
 var nArtifacts = 3;
-var nComparisons = 4;
+var nComparisons = 2;
 var nClassifications = 2;
 var nWarmups = nComparisons + nClassifications;
 var nTargets = nArtifacts * 3;
@@ -205,6 +205,7 @@ var totQns = (nArtifacts * nComparison) + nClassifications + 9 + 1;
 */
 
 $(document).ready(function() {
+  //experiment.questionaire();
   //experiment.sliderPractice();
   //experiment.warmup("start");
   //experiment.compare("start");
@@ -347,20 +348,23 @@ var experiment = {
         var morphProp = experiment.warmupStages[qNumber].params;
         drawWhite("classify", morphProp);
         var buttonOrder = shuffle([0, 1, 2]);
-        $("#noun0").html(nouns[buttonOrder[0]]);
-        $("#noun1").html(nouns[buttonOrder[1]]);
-        $("#noun2").html(nouns[buttonOrder[2]]);
+        var n0 = nouns[buttonOrder[0]];
+        var n1 = nouns[buttonOrder[1]];
+        var n2 = nouns[buttonOrder[2]];
+        $("#noun0").html(n0);
+        $("#noun1").html(n1);
+        $("#noun2").html(n2);
         $("#noun0").click( function() {
           $("#noun0").unbind("click");
-          classifyResponse(trialNouns[0], qNumber, startTime, morphProp, buttonOrder)
+          classifyResponse(n0, qNumber, startTime, morphProp, buttonOrder)
         });
         $("#noun1").click( function() {
           $("#noun1").unbind("click");
-          classifyResponse(trialNouns[1], qNumber, startTime, morphProp, buttonOrder)
+          classifyResponse(n1, qNumber, startTime, morphProp, buttonOrder)
         });
         $("#noun2").click( function() {
           $("#noun2").unbind("click");
-          classifyResponse(trialNouns[2], qNumber, startTime, morphProp, buttonOrder)
+          classifyResponse(n2, qNumber, startTime, morphProp, buttonOrder)
         });
       } else {
         console.log("ERROR unrecognized input for " +
@@ -371,11 +375,11 @@ var experiment = {
 
   target: function() {
     if (experiment.cond == 'speech-act') {
-      var prompt = "<p>John is an expert on these alien artifacts.</p><p>Adjust the " +
-                   "slider underneath each phrase to indicate what you think " +
-                   "an object would look like if you hear John describe" +
-                   " the object as...</p>";
-      var targetBegin = '... "';
+      var prompt = "<p>John is an expert on these alien artifacts.</p>" +
+                   "<p>Imagine that John describes an object with each " +
+                   "phrase below. What do you think the object looks like? " +
+                   "Adjust the slider to give us your guess.</p>";
+      var targetBegin = 'John says, "';
       var targetEnd = '"';
     } else {
       var prompt = "Please use the sliders below each of the phrases to indicate...";
@@ -387,14 +391,25 @@ var experiment = {
     $("#targetError").hide();
     showSlide("target");
     //randomize target phrase order
-    var targetPhrases = [];
+    var targetPhrases = [ [], [], [] ];
+    var phrasesOrder = shuffle([0,1,2]);
     for (var i=0; i<nouns.length; i++) {
-     targetPhrases.push(nouns[i]);
-     targetPhrases.push(adjective + " " + nouns[i]);
-     targetPhrases.push("very " + adjective + " " + 
-                        nouns[i]);
+      //if need to switch rows and columns, do that here by switching i and phrasesOrder[#]
+      targetPhrases[i][phrasesOrder[0]] = nouns[i];
+      targetPhrases[i][phrasesOrder[1]] = adjective + " " + nouns[i];
+      targetPhrases[i][phrasesOrder[2]] = "very " + adjective + " " + nouns[i];
+    }
+    var targetPhrases = shuffle(targetPhrases);
+    
+    function row(index) {
+      return Math.floor(index / 3);
+    }
+    function col(index) {
+      return (index % 3);
     }
 
+    var maxRange = 0.5;
+    var minRange = 0.5;
     //stupid for-loop closure bullshit (!!!!!)
     var shapes = [];
     var responses = {};
@@ -416,18 +431,19 @@ var experiment = {
     }
     function callCreator(index) {
      return function(x) {
-       if (responses[targetPhrases[index]] == null) {
+       if (responses[targetPhrases[row(index)][col(index)]] == null) {
          nResponses++;
+         responses[targetPhrases[row(index)][col(index)]] = [];
          $('.bar').css('width', ( (100*(nWarmups + 1 + nResponses)/nQns) + "%"));
        }
-       responses[targetPhrases[index]] = x;
+       responses[targetPhrases[row(index)][col(index)]].push(x);
      }
     }
     //end stupid for-loop closure bullshit (!!!!!)
 
     for (var i=0; i < 9; i++) {
      $("#targetText"+i).html(targetBegin + "a <b>" + 
-                             targetPhrases[i] +
+                             targetPhrases[row(i)][col(i)] +
                              "</b>" + targetEnd);
      var caseLabel = "sliderCase" + i;
      var sliderLabel = "slider" + i;
@@ -441,6 +457,7 @@ var experiment = {
        callback: callCreator(i)
      });
     }
+    var startTime = (new Date()).getTime();
 
     $("#targetMoveon").click(function() {
      /*var nFail = 0;
@@ -451,29 +468,36 @@ var experiment = {
        $("#targetError").show();
      } else {
        $("#targetMoveon").unbind("click");
-       experiment.data["targetQns"] = responses;
+       var endTime = (new Date()).getTime();
+       responses["rt"] = endTime - startTime;
+       experiment.data["target"] = responses;
        for (phrase in responses) {
          console.log(phrase + " - " + responses[phrase]);
        }
-       experiment.language();
+       experiment.questionaire();
      }
     });
   },
 
-  language: function() {
+  questionaire: function() {
     $(document).keypress( function(event){
      if (event.which == '13') {
         event.preventDefault();
       }
     });
     $('.bar').css('width', ( "100%"));
-    showSlide("language");
+    showSlide("questionaire");
     $("#lgerror").hide();
-    $("#lgsubmit").click(function(){
-    lang = $("#lgform").serialize();
+    $("#formsubmit").click(function(){
+    rawResponse = $("#questionaireform").serialize();
+    pieces = rawResponse.split("&");
+    var age = pieces[0].split("=")[1];
+    var lang = pieces[1].split("=")[1];
+    var comments = pieces[2].split("=")[1];
     if (lang.length > 5) {
-        lang = lang.slice(3,lang.length);
         experiment.data["language"] = lang;
+        experiment.data["comments"] = comments;
+        experiment.data["age"] = age;
         showSlide("finished");
         setTimeout(function() { turk.submit(experiment.data) }, 1000);
     }
