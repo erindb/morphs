@@ -138,18 +138,47 @@ var peakedUp = [ 0.5187, 0.696, 0.9059, 0.5085, 0.06499,
 //randomized particulars
 var shapePairs = [ { cloud: "M 221.7571575320564,150 Q 235.33250039697197,183.56816372052631 178.66709439959914,176.68337715408177 Q 189.77066884863115,237.34425189457463 152.67669302195748,230.2622947355221 Q 106.18824144458648,263.08315106222085 87.34457613025721,214.28222693427597 Q 37.157650543250696,192.13597105007403 71.60876085378497,143.4415297870395 Q 69.50098674009855,101.76184621474493 130.13572530091528,119.31686876482323 Q 139.68495874592924,60.558577755087825 174.01994490949298,83.1415789427852 Q 238.04234639979444,88.07874811311186 221.7571575320564,150",
                      spikey: "M 227.1753318214803,150 Q 230.34329245027482,184.3396911320814 234.17184931397168,238.03432938679111 Q 176.1471395867638,223.02310266966794 145.67111361016336,207.3901616410368 Q 120.60272053801536,208.7539431935977 76.15756846740022,214.53454863270557 Q 70.15797594245315,176.3162788336788 56.02099517470542,142.32813486378728 Q 83.51403297621943,109.59015621330471 104.56308657027593,77.5248400718606 Q 136.0595742073103,58.977915925262366 181.11244904919704,31.15287588330574 Q 219.58206251754342,96.28873096172566 227.1753318214803,150"} ];
-var nouns = ["wug", "tig", "bonk"];
-var colors = [ {word: "red", hex: "ff0000"},
-               {word: "blue", hex: "0000ff"},
-               {word: "green", hex: "#00ff00"}];
-var adjectives = ["feppy"];
-var nounify = {"feppy": "feppiness"};
+var colorBank = [ {word: "red", hex: "ff0000"},
+                  {word: "blue", hex: "0000ff"},
+                  {word: "green", hex: "#00ff00"}];
+var nonceWords = ["fep", "wug", "tig", "baz", "dax", "blick", "speff", "zib",
+                  "gub", "bort"]
+var nounify = { "feppy": "feppiness",
+                "wuggy": "wugginess",
+                "tiggy": "tigginess",
+                "bazzy": "bazziness",
+                "daxy": "daxiness",
+                "blicky": "blickiness",
+                "speffy": "speffines",
+                "zibby": "zibbiness",
+                "gubby": "gubbiness",
+                "borty": "bortiness"};
+var adjify = { "fep": "feppy",
+               "wug":"wuggy",
+               "tig": "tiggy",
+               "baz": "bazzy",
+               "blick": "blicky",
+               "dax": "daxy",
+               "speff": "speffy",
+               "zib": "zibby",
+               "gub": "gubby",
+               "bort": "borty"};
+var plural = { "fep": "feps",
+               "wug":"wugs",
+               "tig": "tigs",
+               "baz": "bazes",
+               "blick": "blicks",
+               "dax": "daxes",
+               "speff": "speffs",
+               "zib": "zibs",
+               "gub": "gubs",
+               "bort": "borts" }
 var distributions = [peakedDown, peakedMid, peakedUp];
 var grey = "#e0e0e0";
 
 //as many compare as classify, should be roughly half easy half difficult
 var nArtifacts = 3;
-var nComparisons = 2;
+var nComparisons = 4;
 var nClassifications = 2;
 var nWarmups = nComparisons + nClassifications;
 var nTargets = nArtifacts * 3;
@@ -184,15 +213,21 @@ $(document).ready(function() {
   $("#mustaccept").hide();
 });
 
+//parameters randomized for each subject
+var shuffledNonce = shuffle(nonceWords);
+var nouns = shuffledNonce.slice(0,3);
+var adjective = adjify[ shuffledNonce[4] ];
+var least = shapePairs[0].cloud;
+var most = shapePairs[0].spikey;
+var colors = getColors();
+
 var experiment = {
-  data: {"classificationWarmup":{}, "comparison":{}},
-  least: shapePairs[0].cloud,
-  most: shapePairs[0].spikey,
-  adjective: adjectives[0],
-  nouns: shuffle(nouns),
+  data: {"nouns":nouns, "adjective":adjective, "colors":colors, "least":least,
+         "most":most, "windowWidth":window.innerWidth,
+         "windowHeight":window.innerHeight, "warmups":[] },
   warmupStages: getWarmupStages(),
   colors: getColors(),
-  cond: 'speech-act',//shuffle(conds)[0],
+  cond: 'speech-act',
 
   instructions: function() {
     if (turk.previewMode) {
@@ -206,30 +241,38 @@ var experiment = {
   
   sliderPractice: function() {
     $("#sliderText").html("<p>You will learn about three kinds of alien artifacts" +
-                          " that differ in color and " +
-                          nounify[experiment.adjective] + ".</p><p>" +
-                          caps(nounify[experiment.adjective]) + " is an important " +
+                          " that differ in color and <b>" +
+                          nounify[adjective] + "</b>.</p><p>" +
+                          caps(nounify[adjective]) + " is an important " +
                           "property, so please take a moment to understand " +
                           "a bit about it. You can adjust the slider below " +
-                          "to vary the " + nounify[experiment.adjective] +
+                          "to vary the " + nounify[adjective] +
                           " of this shape.<p>");
     var interactivePaper = Raphael("interactiveCanvas", 300, 300);
-    $("#leftTag").html("least " + experiment.adjective);
-    $("#rightTag").html("most " + experiment.adjective);
-    var halfway = intermediate(experiment.least, experiment.most, 0.5);
+    $("#leftTag").html("least " + adjective);
+    $("#rightTag").html("most " + adjective);
+    var halfway = intermediate(least, most, 0.5);
     var interactiveShape = interactivePaper.path(halfway);
     interactiveShape.attr({fill: makeGradient("r", grey)});
     showSlide("sliderPractice");
+    var maxRange = 0.5;
+    var minRange = 0.5;
+    var visitedPositions = [];
     var practiceSlider = new Dragdealer("introSlider", {
       x: 0.5,
       speed: 50,
       animationCallback: function(x) {
-        var inter = intermediate(experiment.least, experiment.most, x);
+        var inter = intermediate(least, most, x);
         interactiveShape.attr({path: inter});
+        if ( x>maxRange ) { maxRange=x; }
+        if ( x<minRange ) { minRange=x; }
       },
+      callback: function(x) { visitedPositions.push(x); }
     });
     $("#sliderMoveon").click(function() {
       $("#sliderMoveon").unbind("click");
+      experiment.data["slider-practice"] = { "min": minRange, "max": maxRange,
+                                             "positions": visitedPositions };
       experiment.warmup('start');
     })
   },
@@ -238,28 +281,28 @@ var experiment = {
     if (stage == "start") {
       $('.bar').css('width', ( (100/nQns) + "%"));
       function buttonSide(side) { return "The artifact on the " + side + " is " +
-                                         "more " + experiment.adjective + "."; }
+                                         "more " + adjective + "."; }
       $("#leftButton").html(buttonSide("left"));
       $("#rightButton").html(buttonSide("right"));
       $("#introObjs").html("<p>Here are examples of the three different kinds of alien" +
-                           " artifacts.<br/>The " + experiment.colors[0].word + 
-                           " ones  are called <b>" + experiment.nouns[0] + "s</b>, " +
-                           "the " + experiment.colors[1].word + " ones are " +
-                           "called <b>" + experiment.nouns[1] + "s</b>, and the " +
-                           experiment.colors[2].word + " ones are called <b>" +
-                           experiment.nouns[2] + "s</b>.</p><p>Some of the " +
-                           "artifacts are more " + experiment.adjective +
-                           " than others. Within each category, we" +
+                           " artifacts.<br/>The " + colors[0].word + 
+                           " ones  are called <b>" + plural[nouns[0]] + "</b>, " +
+                           "the " + colors[1].word + " ones are " +
+                           "called <b>" + plural[nouns[1]] + "</b>, and the " +
+                           colors[2].word + " ones are called <b>" +
+                           plural[nouns[2]] + "</b>.</p><p>Some of the " +
+                           "artifacts are more <b>" + adjective +
+                           "</b> than others. Within each category, we" +
                            " have lined the objects up in order from least to most " +
-                           experiment.adjective + ".</p>");
-      $("#adjLeft").html("least " + experiment.adjective);
-      $("#adjRight").html("most " + experiment.adjective);
+                           adjective + ".</p>");
+      $("#adjLeft").html("least " + adjective);
+      $("#adjRight").html("most " + adjective);
       $("#warmupText").html("We need your help to sort and describe some" +
                             " new artifacts. These new artifacts " +
                             "have lost their original colors, but each is " +
-                            "either a " + experiment.nouns[0] + ", a " +
-                            experiment.nouns[1] + ", or a " +
-                            experiment.nouns[2] + ".");
+                            "either a " + nouns[0] + ", a " +
+                            nouns[1] + ", or a " +
+                            nouns[2] + ".");
       $("#compare").hide();
       $("#classify").hide();
       for (var artifact=0; artifact<nArtifacts; artifact++) {
@@ -282,7 +325,7 @@ var experiment = {
         $("#compare").show();
         $("#classify").hide();
         $("#warmupText").html("Which of the two artifacts below is more " +
-                              experiment.adjective + "?");
+                              adjective + "?");
         var pair = shuffle(experiment.warmupStages[qNumber].params);
         var left = pair[0];
         var right = pair[1];
@@ -303,21 +346,21 @@ var experiment = {
                               " artifact?");
         var morphProp = experiment.warmupStages[qNumber].params;
         drawWhite("classify", morphProp);
-        var trialNouns = shuffle(experiment.nouns);
-        $("#noun0").html(trialNouns[0]);
-        $("#noun1").html(trialNouns[1]);
-        $("#noun2").html(trialNouns[2]);
+        var buttonOrder = shuffle([0, 1, 2]);
+        $("#noun0").html(nouns[buttonOrder[0]]);
+        $("#noun1").html(nouns[buttonOrder[1]]);
+        $("#noun2").html(nouns[buttonOrder[2]]);
         $("#noun0").click( function() {
           $("#noun0").unbind("click");
-          classifyResponse(trialNouns[0], qNumber, startTime)
+          classifyResponse(trialNouns[0], qNumber, startTime, morphProp, buttonOrder)
         });
         $("#noun1").click( function() {
           $("#noun1").unbind("click");
-          classifyResponse(trialNouns[1], qNumber, startTime)
+          classifyResponse(trialNouns[1], qNumber, startTime, morphProp, buttonOrder)
         });
         $("#noun2").click( function() {
           $("#noun2").unbind("click");
-          classifyResponse(trialNouns[2], qNumber, startTime)
+          classifyResponse(trialNouns[2], qNumber, startTime, morphProp, buttonOrder)
         });
       } else {
         console.log("ERROR unrecognized input for " +
@@ -329,7 +372,7 @@ var experiment = {
   target: function() {
     if (experiment.cond == 'speech-act') {
       var prompt = "<p>John is an expert on these alien artifacts.</p><p>Adjust the " +
-                   "slider underneat each phrase to indicate what you think " +
+                   "slider underneath each phrase to indicate what you think " +
                    "an object would look like if you hear John describe" +
                    " the object as...</p>";
       var targetBegin = '... "';
@@ -345,19 +388,19 @@ var experiment = {
     showSlide("target");
     //randomize target phrase order
     var targetPhrases = [];
-    for (var i=0; i<experiment.nouns.length; i++) {
-     targetPhrases.push(experiment.nouns[i]);
-     targetPhrases.push(experiment.adjective + " " + experiment.nouns[i]);
-     targetPhrases.push("very " + experiment.adjective + " " + 
-                        experiment.nouns[i]);
+    for (var i=0; i<nouns.length; i++) {
+     targetPhrases.push(nouns[i]);
+     targetPhrases.push(adjective + " " + nouns[i]);
+     targetPhrases.push("very " + adjective + " " + 
+                        nouns[i]);
     }
 
     //stupid for-loop closure bullshit (!!!!!)
     var shapes = [];
     var responses = {};
     var nResponses = 0;
-    var firstPath = posify(intermediate(experiment.least,
-                                       experiment.most, 0.5),
+    var firstPath = posify(intermediate(least,
+                                       most, 0.5),
                           20, 50);
     for (var i=0; i<9; i++) {
      var paper = Raphael("canvas"+i, 60, 100);
@@ -365,7 +408,7 @@ var experiment = {
     }
     function animCreator(index) {
      return function(x) {
-       var currentPath = posify(intermediate(experiment.least, experiment.most, x), 20, 50);
+       var currentPath = posify(intermediate(least, most, x), 20, 50);
        var shape = shapes[index];
        shape.attr({path: currentPath,
                    fill: makeGradient("r",grey)});
@@ -470,7 +513,7 @@ var experiment = {
   }
   
 function getColors() {
-  var shuffledColors = shuffle(colors);
+  var shuffledColors = shuffle(colorBank);
   var variedColors = [ {}, {}, {} ]
   for (var i=0; i<nArtifacts; i++) {
     var latentMean = shuffledColors[i].hex;
@@ -492,16 +535,16 @@ function displayStuff(artifact) {
   var sep = 80;
   var leftSpace = 10;
   var above = 0;
-  $("#n"+artifact).html(experiment.nouns[artifact] + "s");
+  $("#n"+artifact).html(plural[nouns[artifact]]);
   var warmupPaper = Raphael("orderedArts"+artifact, ncols*space, nrows*space);
   for (var row=0; row<nrows; row++) {
     for (var col=0; col<ncols; col++) {
       var i = (row*ncols)+col;
-      var color = experiment.colors[artifact].tokenColors[i];
+      var color = colors[artifact].tokenColors[i];
       var morphProp = distributions[artifact][i];
       var xpos = (col+0.5)*space;
       var ypos = (row+0.5)*space;
-      var inter = intermediate(experiment.least, experiment.most, morphProp);
+      var inter = intermediate(least, most, morphProp);
       var tmpPath = posify(inter, xpos, ypos);
       var tmpObj = warmupPaper.path(tmpPath);
       tmpObj.attr({fill: color});
@@ -516,7 +559,7 @@ function drawWhite(label, morphProp) {
   var color = makeGradient("r", grey);
   var xpos = 0.5*space;
   var ypos = 0.5*space;
-  var inter = intermediate(experiment.least, experiment.most, morphProp);
+  var inter = intermediate(least, most, morphProp);
   var tmpPath = posify(inter, xpos, ypos);
   var tmpObj = onePaper.path(tmpPath);
   tmpObj.attr({fill: color});
@@ -531,30 +574,46 @@ function warmupNext(qNumber) {
   }
 }
 
-function compareResponse(choice, morphProps, qNumber, startTime) {
-  var left = morphProps.left;
-  var right = morphProps.right;
-  if (left > right) {
+function compareResponse(choice, morphProps, n, startTime) {
+  //choice should be either left or right
+  //experiment.data moreSide choice correctness rt
+  var endTime = (new Date()).getTime();
+  var rt = endTime - startTime;
+  if (morphProps.left > morphProps.right) {
     var moreSide = "left";
+    var order = "ML"; //from left to right: more then less
   } else {
     var moreSide = "right";
+    var order = "LM"; //from left to right: less then more
   }
   if (choice == moreSide) {
     var correctness = "correct";
   } else {
     var correctness = "incorrect";
   }
-  //experiment.data moreSide choice correctness rt
-  var endTime = (new Date()).getTime();
-  var rt = endTime - startTime;
-  warmupNext(qNumber);
+  var trialData = 
+  experiment.data["warmups"].push({"qNumber":n,
+                                    "qType":"compare",
+                                    "rt":rt,
+                                    "response":choice,
+                                    "correctness":correctness,
+                                    "morphProp(s)":morphProps,
+                                    "order":order});
+  warmupNext(n);
 }
 
-function classifyResponse(noun, qNumber, startTime) {
+function classifyResponse(noun, n, startTime, morphProp, order) {
   //experiment.data noun
   var endTime = (new Date()).getTime();
   var rt = endTime - startTime;
-  warmupNext(qNumber);
+  experiment.data["warmups"].push({"qNumber":n,
+                                   "qType":"classify",
+                                   "rt":rt,
+                                   "response":noun,
+                                   "correctness":"N/A",
+                                   "morphProp(s)":morphProp,
+                                   "order":order});
+  warmupNext(n);
 }
 
 function getWarmupStages() {

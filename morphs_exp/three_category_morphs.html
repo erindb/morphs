@@ -21,10 +21,10 @@
     <br>
     <!-- <p id='logo-text'>Stanford Language and Cognition Lab</p> -->
     <p class="block-text">In this experiment, you will learn the about some 
-    artifacts from an imaginary alien race and answer questions about them.</p>
-    <p class="block-text">There are three (3) main parts of this 
+    artifacts from a newly discovered alien race and answer questions about them.</p>
+    <p class="block-text">There are two (2) main parts of this 
     experiment, each of which will take a few minutes to complete. The whole
-    experiment should take about fifteen (15) minutes in total.</b></p> 
+    experiment should take about ten (10) minutes in total.</b></p> 
     <button type="button" onClick="this.blur(); experiment.instructions()">Start
     </button>
     <p class="block-text">(Note: you won't be able to preview this HIT before
@@ -48,7 +48,7 @@
     <h2>Instructions</h2>
     <p>In this experiment, we would like you to imagine that an alien race has
     been discovered.</p>
-    <p>You will study <b>three different kinds of alien artifacts</b>
+    <p>You will study three different kinds of alien artifacts
     and learn some words in the aliens' language to describe the artifacts
     and their properties.</p>
     <p>Please click "Begin" when you're ready to start.</p>
@@ -88,16 +88,16 @@
       <table align="center">
         <tr><td align="center"><div id="leftHolder"></div></td>
             <td align="center"><div id="rightHolder"></div></td></tr>
-        <tr><td align="center"><button type="button" id="leftButton" value="left"></button></td>
-            <td align="center"><button type="button" id="rightButton" value="right"></button></td></tr>
+        <tr><td align="center"><button type="button" id="leftButton">{{}}</button></td>
+            <td align="center"><button type="button" id="rightButton">{{}}</button></td></tr>
       </table>
     </div>
     <div id="classify">
       <div id="classifyHolder"></div>
       <div id="classifyResponse">
-        <button id="noun0"></button>
-        <button id="noun1"></button>
-        <button id="noun2"></button>
+        <button type="button" id="noun0">{{}}</button>
+        <button type="button" id="noun1">{{}}</button>
+        <button type="button" id="noun2">{{}}</button>
       </div>
     </div>
   </div>
