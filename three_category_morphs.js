@@ -285,7 +285,7 @@ var most = shapes[ mostLabel ];
 var warmupIndices = shuffle([0, 1, 2]); //order in which categories are displayed in warmup from top to bottom
 
 var experiment = {
-  data: {"nouns":{"most":nouns[0], "mid":nouns[1], "least":nouns[2]},
+  data: {"nouns":{"least":nouns[0], "mid":nouns[1], "most":nouns[2]},
                   "adjective":adjective, "colors":colors,
                   "least":{"label": leastLabel, "path":least},
                   "most":{"label":mostLabel, "path":most},
