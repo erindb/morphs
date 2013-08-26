@@ -1,0 +1,180 @@
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Alien Anthropological Study</title>
+  <meta name="viewport" content="initial-scale=1.0">
+  <link rel="stylesheet" href="style.css" />
+</head> 
+<body>
+
+  <div class="progress">
+	<span>Progress:</span>
+	<div class="bar-wrapper">
+	  <div class="bar" width="0%">
+	  </div>
+	</div>
+  </div>
+
+  <div class="slide" id="consent">
+    <img src="stanford.png" alt="Stanford University">
+    <br>
+    <br>
+    <!-- <p id='logo-text'>Stanford Language and Cognition Lab</p> -->
+    <p class="block-text">In this experiment, you will learn the about some 
+    artifacts from a newly discovered alien race and answer questions about them.</p>
+    <p class="block-text">There are two (2) main parts of this 
+    experiment, each of which will take a few minutes to complete. The whole
+    experiment should take about five (5) minutes in total.</b></p> 
+    <button type="button" onClick="this.blur(); experiment.instructions()">Start
+    </button>
+    <p class="block-text">(Note: you won't be able to preview this HIT before
+    accepting it because it's so short.)</p>
+    <p class="block-text" id="mustaccept"> You must accept the HIT in order to
+    continue.</p>
+   	<p class="block-text" id="legal">By answering the following questions, you 
+   	are participating in a study being performed by cognitive scientists in the 
+   	Stanford Department of Psychology. If you have questions about this research, 
+   	please contact <b>Erin Bennett</b> at 
+   	<a href="mailto:erindb@stanford.edu">erindb@stanford.edu</a> 
+   	or Noah Goodman at ngoodman@stanford.edu. You must be at least 18 years old 
+   	to participate. Your participation in this research is voluntary. You may 
+   	decline to answer any or all of the following questions. You may decline
+   	further participation, at any time, without adverse consequences. Your 
+   	anonymity is assured; the researchers who have requested your
+   	participation will not receive any personal information about you.</p>
+  </div>
+
+  <div class="slide" id="instructions">
+    <h2>Instructions</h2>
+    <p>In this experiment, we would like you to imagine that an alien race has
+    been discovered.</p>
+    <p>You will study two different kinds of alien artifacts
+    and learn some words in the aliens' language to describe the artifacts
+    and their properties.</p>
+    <p>Please click "Begin" when you're ready to start.</p>
+    <button type="button" id="begin" value="Begin">
+    Begin</button>
+  </div>
+  
+  <div class="slide" id="sliderPractice">
+    <div id="sliderText"></div>
+    <div id="interactiveCanvas"></div>
+    <table align="center">
+      <tr><td align="left" id="leftTag">{{}}</td>
+          <td align="right" id="rightTag">{{}}</td></tr>
+      <tr><td colspan="2" width="600px">
+        <div id="introSlider" class="dragdealer">
+          <div class="red-bar handle"></div>
+        </div>
+      </td></tr></table>
+    <button type="button" id="sliderMoveon">Continue</button>
+  </div>
+
+  <div class="slide" id="warmup">
+    <div id="introObjs">{{}}</div>
+    <table align="center">
+      <tr><td width="50px"></td><td><p id="adjLeft" align="left">{{}}</p></td><td><p id="adjRight" align="right">{{}}</p></td></tr>
+      <tr><td colspan="3"><table border="1px" align="center" cell-spacing="30px">
+        <tr><th id="n0">{{}}</th><td><div id="orderedArts0"></div></td></tr>
+        <tr><th id="n1">{{}}</th><td><div id="orderedArts1"></div></td></tr>
+        <!--<tr><th id="n2">{{}}</th><td><div id="orderedArts2"></div></td></tr>-->
+      </table></td></tr>
+    </table>
+    <p id="warmupText"></p>
+    <p id="warmupContinueText">Click continue when you are ready to start sorting
+    and describing the new artifacts.</p>
+    <button id="warmupMoveon" type="button" value="Continue">Continue</button>
+    <div id="compare">
+      <table align="center">
+        <tr><td align="center"><div id="leftHolder"></div></td>
+            <td align="center"><div id="rightHolder"></div></td></tr>
+        <tr><td align="center"><button type="button" id="leftButton">{{}}</button></td>
+            <td align="center"><button type="button" id="rightButton">{{}}</button></td></tr>
+      </table>
+    </div>
+    <div id="classify">
+      <div id="classifyHolder"></div>
+      <div id="classifyResponse">
+        <button type="button" id="noun0">{{}}</button>
+        <button type="button" id="noun1">{{}}</button>
+        <!--<button type="button" id="noun2">{{}}</button>-->
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" id="target">
+    <div id="targetIntro">{{}}</div>
+    <table align="center" cellspacing="20px"><tbody>
+      <tr><td width="200px"><span  id="targetText0">{{}}</span>
+              <div id="sliderCase0"></div></td>
+          <td><div id="canvas0"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText1">{{}}</span>
+              <div id="sliderCase1"></div></td>
+          <td><div id="canvas1"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText2">{{}}</span>
+              <div id="sliderCase2"></div></td>
+          <td><div id="canvas2"></div></td></tr>
+      <tr><td width="200px"><span  id="targetText3">{{}}</span>
+              <div id="sliderCase3"></div></td>
+          <td><div id="canvas3"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText4">{{}}</span>
+              <div id="sliderCase4"></div></td>
+          <td><div id="canvas4"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText5">{{}}</span>
+              <div id="sliderCase5"></div></td>
+          <td><div id="canvas5"></div></td></tr>
+      <!--<tr><td width="200px"><span  id="targetText6">{{}}</span>
+              <div id="sliderCase6"></div></td>
+          <td><div id="canvas6"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText7">{{}}</span>
+              <div id="sliderCase7"></div></td>
+          <td><div id="canvas7"></div></td>
+          <td width="40px"></td>
+          <td width="200px"><span  id="targetText8">{{}}</span>
+              <div id="sliderCase8"></div></td>
+          <td><div id="canvas8"></div></td></tr>-->
+    </tbody></table>
+    <button type="button" id="targetMoveon">Continue</button>
+    <p id="targetError">Please make sure to adjust all the red sliders before 
+    continuing (or tap the slider if you think it's already in the right position).</p>
+  </div>
+
+  <div class="slide" id="questionaire">
+    <p>Last section! Please enter your responses below, and then click 'Submit'</p>.
+    <br/>
+    <form id="questionaireform">
+	  <p>Your age: <input type="text" name="age"></input></p>
+	  <br/>
+	  <p>Your native language*:<input type="text" name="lg"></input><br/>(the language that
+	  was spoken at home when you were a child)</p>
+	  <br/>
+	  <p>We would be intersted in any comments you have about this experiment. Please type them here:</p>
+	  <textarea rows="7" cols="70" name="comments"></textarea>
+	  <br/>
+	  <br/>
+    <button type="button" id="formsubmit">Submit</button>
+    </form>
+    <br/>
+    <p>*required</p>
+  <div>
+
+  <div class="slide" id="finished">
+  You're finished - thanks for participating! Submitting to Mechanical Turk...
+  <div>
+  
+  <!-- Scripts -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"
+    type="text/javascript"></script>
+    <script src="raphael.js"></script>
+    <script src="mmturkey.js"></script>
+    <script src="browserCheck.js"></script>
+    <script src="dragdealer.js"></script>
+    <script src="shapes.js"></script>
+    <script src="alienArtifacts_8-27.js"></script>
+  
+</body>
